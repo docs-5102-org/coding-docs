@@ -1,0 +1,74 @@
+// place your custom styles here
+
+
+// 修改左侧菜单link语法的间隙 start
+.vp-sidebar-link {
+    padding: 0.25rem 0.9rem !important;
+}
+// 修改左侧菜单组的间隙
+.vp-sidebar-header{
+    padding: 0.25rem 0.9rem !important;
+}
+
+// 修改搜索按钮的样式--start
+@media (max-width: 959px) {
+    .slimsearch-button {
+        /* border-radius: 50%; */
+    }
+}
+.slimsearch-button{
+    width: 150px;
+}
+@media (max-width: 930px) {
+    .slimsearch-button {
+        width: auto;
+    }
+}
+.slimsearch-key-hints{
+    margin-left: 20px;
+}
+// 修改搜索按钮的样式--end
+
+:root {
+    --vp-font-heading: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+//修改首页标题样式
+.vp-article-title {
+    position: relative;
+    display: inline-block;
+    color: #2d6a4f;
+    font-size: 2.25rem; /* 36px */
+    font-family: var(--vp-font-heading);
+    font-weight: 700;
+    line-height: 1.6;
+    cursor: pointer;
+    background: linear-gradient(135deg, #2d6a4f 0%, #40916c 50%, #52b788 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 2px 4px rgba(45, 106, 79, 0.2);
+    transition: all 0.3s ease;
+    margin-bottom: 30px;
+}
+
+.vp-article-title:hover {
+    transform: translateY(-2px);
+    text-shadow: 0 4px 8px rgba(45, 106, 79, 0.3);
+}
+
+.vp-article-title::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, #2d6a4f, #40916c, #52b788);
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.vp-article-title:hover::after {
+    opacity: 1;
+}

@@ -1,0 +1,509 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# PowerShell 使用规范与注意事项
+
+## 命名规范
+
+### 变量命名
+- 使用有意义的名称，避免缩写和单字母变量（除非是临时循环变量）
+- 使用PascalCase（首字母大写）或camelCase（首字母小写）命名法
+- 避免使用特殊字符和空格
+```powershell
+# 推荐
+$FileName = "document.txt"
+$userCount = 42
+
+# 不推荐
+$fn = "document.txt"
+$u_c = 42
+```
+
+### 函数命名
+- 使用动词-名词格式（如Get-Item, Set-Location）
+- 使用Pascal命名法（每个单词首字母大写）
+- 函数名应清晰表达其功能
+```powershell
+# 推荐
+function Get-UserData { ... }
+function Convert-XmlToJson { ... }
+
+# 不推荐
+function userData { ... }
+function xmljson { ... }
+```
+
+### 参数命名
+- 使用Pascal命名法
+- 参数名应描述其用途
+- 为参数提供有意义的默认值
+```powershell
+function Send-Email {
+    param(
+        [string]$Recipient,
+        [string]$Subject = "No Subject",
+        [string]$Body = ""
+    )
+    # 函数实现
+}
+```
+
+## 代码格式规范
+
+### 缩进和空格
+- 使用4个空格缩进，不使用Tab
+- 在运算符两侧添加空格
+- 在逗号和分号后添加空格
+```powershell
+if ($count -gt 0) {
+    foreach ($item in $collection) {
+        $result = $item.Value + 10
+    }
+}
+```
+
+### 括号和大括号
+- 大括号应在同一行开始，单独一行结束
+- 在控制语句和大括号之间添加空格
+```powershell
+if ($condition) {
+    # 代码
+}
+else {
+    # 代码
+}
+```
+
+### 注释
+- 使用单行注释说明复杂代码
+- 为函数和脚本添加注释块
+- 注释应解释"为什么"而不仅仅是"是什么"
+```powershell
+# 计算用户活跃度分数
+$activityScore = ($loginCount * 0.7) + ($postCount * 0.3)
+
+<#
+.SYNOPSIS
+    处理用户数据并生成报告
+.DESCRIPTION
+    此函数读取用户数据，计算统计信息，并生成HTML报告
+.PARAMETER Path
+    用户数据文件的路径
+#>
+function Process-UserData {
+    param([string]$Path)
+    # 实现
+}
+```
+
+## 最佳实践
+
+### 错误处理
+- 使用try-catch块处理预期的错误
+- 为关键操作设置适当的ErrorAction
+- 使用$Error变量检查和处理错误
+```powershell
+try {
+    $content = Get-Content -Path $filePath -ErrorAction Stop
+}
+catch {
+    Write-Error "无法读取文件: $_"
+}
+```
+
+### 路径处理
+- 使用Join-Path而不是字符串连接构建路径
+- 总是验证路径是否存在再执行操作
+- 处理包含空格和特殊字符的路径时使用引号
+```powershell
+$configPath = Join-Path -Path $PSScriptRoot -ChildPath "config.json"
+if (Test-Path -Path $configPath) {
+    $config = Get-Content -Path $configPath | ConvertFrom-Json
+}
+```
+
+### 性能考虑
+- 避免在循环中使用Write-Host（影响性能）
+- 对大集合使用管道而不是ForEach-Object
+- 预先分配集合大小以提高性能
+```powershell
+# 低效
+foreach ($item in $largeCollection) {
+    Write-Host $item
+}
+
+# 更高效
+$results = [System.Collections.ArrayList]::new($largeCollection.Count)
+foreach ($item in $largeCollection) {
+    $null = $results.Add($item)
+}
+Write-Output $results
+```
+
+## 安全性注意事项
+
+### 凭据处理
+- 不要在脚本中硬编码密码或敏感信息
+- 使用Get-Credential或SecureString处理凭据
+- 考虑使用加密的配置文件存储敏感信息
+```powershell
+# 不安全
+$password = "P@ssw0rd"
+
+# 安全
+$credential = Get-Credential
+# 或
+$securePassword = Read-Host -AsSecureString -Prompt "请输入密码"
+```
+
+### 执行策略
+- 为生产环境设置适当的执行策略
+- 签名脚本以增强安全性
+- 不要默认以管理员权限运行脚本
+```powershell
+# 检查当前执行策略
+Get-ExecutionPolicy
+
+# 为当前用户设置执行策略
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+### 输入验证
+- 始终验证用户输入和外部数据
+- 使用参数验证属性限制输入
+- 防止注入攻击，特别是在构建命令字符串时
+```powershell
+function Process-Data {
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$InputPath,
+        
+        [ValidateRange(1, 100)]
+        [int]$Count = 10
+    )
+    # 实现
+}
+```
+
+## 文件和目录操作注意事项
+
+### 路径处理
+- 使用-LiteralPath参数处理包含特殊字符的路径
+- 避免使用相对路径，优先使用绝对路径
+- 处理中文路径时确保正确的字符编码
+```powershell
+# 设置UTF-8编码
+$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+# 处理包含特殊字符的路径
+Get-ChildItem -LiteralPath "C:\路径\包含[括号]的文件夹"
+```
+
+### 批量操作
+- 使用-WhatIf参数先测试批量操作
+- 对重要数据操作前先备份
+- 使用事务处理复杂的文件操作
+```powershell
+# 先测试会发生什么
+Remove-Item -Path "C:\temp\*.log" -WhatIf
+
+# 确认无误后执行
+Remove-Item -Path "C:\temp\*.log" -Confirm:$false
+```
+
+### 权限问题
+- 检查文件和目录的访问权限
+- 使用适当的凭据执行需要特权的操作
+- 操作完成后恢复原始权限
+```powershell
+# 检查权限
+$acl = Get-Acl -Path $filePath
+
+# 修改权限
+$rule = New-Object System.Security.AccessControl.FileSystemAccessRule("Users", "Read", "Allow")
+$acl.SetAccessRule($rule)
+Set-Acl -Path $filePath -AclObject $acl
+```
+
+## 脚本开发最佳实践
+
+### 模块化
+- 将常用功能封装为函数或模块
+- 每个函数应专注于单一职责
+- 使用参数而不是全局变量传递数据
+```powershell
+function Get-ConfigValue {
+    param([string]$Key)
+    # 实现
+}
+
+function Set-ConfigValue {
+    param([string]$Key, [string]$Value)
+    # 实现
+}
+```
+
+### 版本控制
+- 为脚本添加版本信息
+- 记录更改历史
+- 使用源代码管理系统（如Git）
+```powershell
+<#
+.SYNOPSIS
+    用户数据处理工具
+.DESCRIPTION
+    版本: 1.2.0
+    作者: 您的名字
+    更新日期: 2023-07-15
+    更改历史:
+    - 1.2.0: 添加报表导出功能
+    - 1.1.0: 改进错误处理
+    - 1.0.0: 初始版本
+#>
+```
+
+### 测试
+- 为关键功能编写测试
+- 使用Pester框架进行自动化测试
+- 在不同环境中测试脚本
+```powershell
+# 使用Pester进行测试
+Describe "配置管理功能" {
+    It "应正确读取配置值" {
+        $result = Get-ConfigValue -Key "AppName"
+        $result | Should -Be "MyApp"
+    }
+}
+```
+
+## 跨平台兼容性
+
+### PowerShell Core (PowerShell 6+)
+- 使用兼容PowerShell Core的cmdlet
+- 避免Windows特有的API和COM对象
+- 测试在不同操作系统上的行为
+```powershell
+# 跨平台兼容的路径处理
+$configPath = Join-Path -Path $HOME -ChildPath ".config"
+
+# 检测操作系统
+if ($IsWindows) {
+    # Windows特有代码
+}
+elseif ($IsLinux) {
+    # Linux特有代码
+}
+elseif ($IsMacOS) {
+    # macOS特有代码
+}
+```
+
+### 文件路径分隔符
+- 使用[IO.Path]::Combine()或Join-Path处理路径
+- 避免硬编码路径分隔符（\或/）
+```powershell
+# 不推荐
+$path = "$env:USERPROFILE\Documents\file.txt"
+
+# 推荐
+$path = Join-Path -Path $env:USERPROFILE -ChildPath "Documents" -AdditionalChildPath "file.txt"
+```
+
+## 常用命令
+
+### 查看目录内容
+```powershell
+# 查看当前目录内容
+Get-ChildItem
+# 或使用别名
+dir
+ls
+
+# 查看特定目录内容
+Get-ChildItem -Path "C:\path\to\directory"
+# 或
+dir "C:\path\to\directory"
+
+# 查看包括隐藏文件的所有内容
+Get-ChildItem -Path "C:\path\to\directory" -Force
+
+# 递归查看目录内容
+Get-ChildItem -Path "C:\path\to\directory" -Recurse
+
+# 按文件类型筛选
+Get-ChildItem -Path "C:\path\to\directory" -Filter "*.md"
+```
+
+### 创建目录
+```powershell
+# 创建新目录
+New-Item -Path "C:\path\to\new\directory" -ItemType Directory
+
+# 如果目录已存在则不报错
+New-Item -Path "C:\path\to\new\directory" -ItemType Directory -Force
+```
+
+### 复制文件和目录
+```powershell
+# 复制文件
+Copy-Item -Path "C:\path\to\source.txt" -Destination "C:\path\to\destination.txt"
+# 或使用别名
+cp "C:\path\to\source.txt" "C:\path\to\destination.txt"
+
+# 覆盖已存在的文件
+Copy-Item -Path "C:\path\to\source.txt" -Destination "C:\path\to\destination.txt" -Force
+
+# 复制目录及其内容
+Copy-Item -Path "C:\path\to\source\directory" -Destination "C:\path\to\destination\directory" -Recurse
+```
+
+### 移动文件和目录
+```powershell
+# 移动文件
+Move-Item -Path "C:\path\to\source.txt" -Destination "C:\path\to\destination.txt"
+# 或使用别名
+mv "C:\path\to\source.txt" "C:\path\to\destination.txt"
+
+# 覆盖已存在的文件
+Move-Item -Path "C:\path\to\source.txt" -Destination "C:\path\to\destination.txt" -Force
+
+# 移动目录及其内容
+Move-Item -Path "C:\path\to\source\directory" -Destination "C:\path\to\destination\directory"
+```
+
+### 删除文件和目录
+```powershell
+# 删除文件
+Remove-Item -Path "C:\path\to\file.txt"
+# 或使用别名
+del "C:\path\to\file.txt"
+rm "C:\path\to\file.txt"
+
+# 删除目录及其内容
+Remove-Item -Path "C:\path\to\directory" -Recurse
+
+# 强制删除（不提示）
+Remove-Item -Path "C:\path\to\file.txt" -Force
+```
+
+### 重命名文件和目录
+```powershell
+# 重命名文件或目录
+Rename-Item -Path "C:\path\to\oldname.txt" -NewName "newname.txt"
+# 或使用别名
+ren "C:\path\to\oldname.txt" "newname.txt"
+```
+
+## 处理中文路径和特殊字符
+
+### 处理包含空格和特殊字符的路径
+```powershell
+# 使用双引号包围路径
+Move-Item -Path "C:\path with spaces\file.txt" -Destination "D:\another path\file.txt"
+
+# 对于包含特殊字符的路径，可以使用转义字符
+Move-Item -Path "C:\path\with`$special`&chars" -Destination "D:\new\path"
+```
+
+### 处理中文路径
+```powershell
+# 确保PowerShell使用UTF-8编码
+$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+# 处理中文路径时，使用双引号包围路径
+Move-Item -Path "C:\路径\到\中文文件.txt" -Destination "D:\新路径\中文文件.txt"
+```
+
+## 批处理多个文件
+
+### 使用通配符
+```powershell
+# 移动所有.txt文件
+Move-Item -Path "C:\source\*.txt" -Destination "D:\destination\"
+
+# 移动所有文件
+Move-Item -Path "C:\source\*" -Destination "D:\destination\"
+```
+
+### 使用ForEach-Object处理多个文件
+```powershell
+# 移动多个特定文件
+Get-ChildItem -Path "C:\source" -Filter "*.md" | ForEach-Object {
+    Move-Item -Path $_.FullName -Destination "D:\destination\" -Force
+}
+
+# 处理文件名包含特定字符的文件
+Get-ChildItem -Path "C:\source" | Where-Object { $_.Name -like "*关键字*" } | ForEach-Object {
+    Move-Item -Path $_.FullName -Destination "D:\destination\" -Force
+}
+```
+
+## 错误处理
+
+### 忽略错误
+```powershell
+# 忽略特定命令的错误
+Move-Item -Path "C:\source\file.txt" -Destination "D:\destination\" -ErrorAction SilentlyContinue
+
+# 在ForEach循环中忽略错误
+Get-ChildItem -Path "C:\source" | ForEach-Object {
+    Move-Item -Path $_.FullName -Destination "D:\destination\" -ErrorAction SilentlyContinue
+}
+```
+
+### 捕获并处理错误
+```powershell
+# 使用try-catch块处理错误
+try {
+    Move-Item -Path "C:\source\file.txt" -Destination "D:\destination\" -ErrorAction Stop
+} catch {
+    Write-Host "发生错误: $_"
+}
+```
+
+## 执行脚本
+
+### 执行PowerShell脚本
+```powershell
+# 执行脚本（需要管理员权限修改执行策略）
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+.\script.ps1
+
+# 绕过执行策略执行脚本
+powershell -ExecutionPolicy Bypass -File .\script.ps1
+```
+
+### 创建并执行批处理脚本
+```powershell
+# 创建PowerShell脚本文件
+@"
+# 这是一个PowerShell脚本
+Move-Item -Path "C:\source\*.txt" -Destination "D:\destination\" -Force
+Write-Host "文件移动完成!"
+"@ | Out-File -FilePath "move_files.ps1" -Encoding utf8
+
+# 执行创建的脚本
+powershell -ExecutionPolicy Bypass -File .\move_files.ps1
+```
+
+## 总结
+
+遵循以上规范和注意事项将帮助您:
+1. 编写更可读、可维护的PowerShell代码
+2. 提高脚本的安全性和可靠性
+3. 减少常见错误和问题
+4. 确保跨平台兼容性
+5. 提高团队协作效率
+
+记住，好的PowerShell实践不仅是关于让代码工作，更是关于让代码易于理解、维护和安全执行。
+
+
+
+
+
+

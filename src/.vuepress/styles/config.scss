@@ -1,0 +1,20 @@
+// you can change config here
+
+// 主题色配置
+// $theme-color: #096dd9; 蓝色
+$theme-color: #3eaf7c;
+
+:root {
+    --code-c-text: #383a42;
+    --code-c-bg: #f0f2f4;
+    --code-c-highlight-bg: rgb(215.75625, 233.00625, 245.94375);
+    --code-c-line-number: rgba(56, 58, 66, 0.67);
+}
+
+// 暗黑主题色代码块配置
+[data-theme=dark] {
+    --code-c-text: #abb2bf;
+    --code-c-bg: #282c34;
+    --code-c-highlight-bg: rgb(46.6326086957, 53.1775362319, 66.2673913043);
+    --code-c-line-number: rgba(171, 178, 191, 0.67);
+}
