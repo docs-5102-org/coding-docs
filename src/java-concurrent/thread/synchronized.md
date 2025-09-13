@@ -8,27 +8,23 @@ tag:
   - volatile
 ---
 
-# Java多线程教程：多线程同步机制详解
-
-## 概述
-
-Java中的同步机制是一种强大的工具，用于控制多个线程对共享资源的访问。它确保同一时间只有一个线程可以访问资源，防止数据不一致和竞态条件。这在多线程环境中尤为重要，因为线程经常共享变量、数组或对象等资源。
+# Java多线程同步机制详解
 
 ## 目录
 
 [[toc]]
 
-## 同步概述
+## 概述
 
-在Java中，`synchronized`关键字用于同步对代码临界区的访问。主要有两种同步方式：
+在Java多线程编程中，当多个线程同时访问共享资源时，可能出现数据不一致和竞态条件等问题。Java提供了多种同步机制来解决这些问题，确保线程安全。
 
-- **同步方法**：整个方法标记为`synchronized`，确保同一时间只有一个线程执行该方法
-- **同步块**：方法内的特定代码块标记为`synchronized`，提供更细粒度的同步控制
+本文将详细介绍Java中的同步机制，包括基本概念、使用方法、最佳实践和常见陷阱。
 
-### 同步的必要性
+## 为什么需要同步
+
+### 线程不安全的示例
 
 ```java
-// 不安全的计数器示例
 class UnsafeCounter {
     private int count = 0;
     
@@ -40,358 +36,569 @@ class UnsafeCounter {
         return count;
     }
 }
+
+public class UnsafeExample {
+    public static void main(String[] args) throws InterruptedException {
+        UnsafeCounter counter = new UnsafeCounter();
+        
+        // 创建两个线程同时执行增量操作
+        Thread t1 = new Thread(() -> {
+            for (int i = 0; i < 10000; i++) {
+                counter.increment();
+            }
+        });
+        
+        Thread t2 = new Thread(() -> {
+            for (int i = 0; i < 10000; i++) {
+                counter.increment();
+            }
+        });
+        
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+        
+        System.out.println("期望结果: 20000");
+        System.out.println("实际结果: " + counter.getCount());
+    }
+}
 ```
 
-在多线程环境中，上述代码可能产生竞态条件，导致计数结果不准确。
+**可能的输出结果：**
+```
+期望结果: 20000
+实际结果: 18756  // 结果可能小于20000
+```
+
+### 问题分析
+
+`count++` 操作实际包含三个步骤：
+1. 从内存读取count的当前值
+2. 将值加1
+3. 将新值写回内存
+
+当多个线程同时执行这些步骤时，可能出现以下情况：
+- 线程A读取count值为100
+- 线程B也读取count值为100（此时线程A还未写回）
+- 线程A计算101并写回
+- 线程B计算101并写回
+- 结果：两次increment操作，count只增加了1
+
+## synchronized关键字
+
+`synchronized`是Java中最基本的同步机制，它通过监视器锁（monitor lock）来实现互斥访问。
+
+### 核心概念
+
+- **监视器锁**：每个Java对象都有一个内置锁（也称为监视器锁或内在锁）
+- **互斥性**：同一时间只有一个线程可以持有特定对象的锁
+- **可见性**：获取锁时会从主内存刷新变量值，释放锁时会将变量值同步到主内存
 
 ## 同步方法
 
-同步方法确保同一对象实例上的该方法同一时间只能被一个线程执行。锁由调用该方法的对象实例持有。
-
-### 语法
+### 实例方法同步
 
 ```java
-public synchronized void synchronizedMethod() {
-    // 同步代码
+class SafeCounter {
+    private int count = 0;
+    
+    public synchronized void increment() {
+        count++; // 现在是线程安全的
+    }
+    
+    public synchronized int getCount() {
+        return count;
+    }
+    
+    // 非同步方法可以与同步方法并发执行
+    public void doSomethingElse() {
+        System.out.println("这个方法不需要同步");
+    }
 }
 ```
 
-### 特性
+**特点：**
+- 锁定的是当前对象实例（this）
+- 同一对象的所有同步方法之间互斥
+- 同步方法与非同步方法可以并发执行
 
-- 获取对象实例锁（monitor lock）
-- 方法执行期间，其他线程无法执行该对象的任何同步方法
-- 可以与非同步方法并发执行
+### 完整示例
 
-## 同步块
+```java
+public class SynchronizedMethodExample {
+    public static void main(String[] args) throws InterruptedException {
+        SafeCounter counter = new SafeCounter();
+        
+        Runnable task = () -> {
+            for (int i = 0; i < 10000; i++) {
+                counter.increment();
+            }
+        };
+        
+        Thread t1 = new Thread(task, "Thread-1");
+        Thread t2 = new Thread(task, "Thread-2");
+        
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+        
+        System.out.println("最终计数: " + counter.getCount()); // 输出: 20000
+    }
+}
+```
 
-同步块是方法内针对特定对象的同步代码块。它允许只锁定代码的关键部分而非整个方法。
+## 同步代码块
 
-### 语法
+同步代码块提供了更细粒度的同步控制，可以指定锁对象并缩小同步范围。
+
+### 基本语法
 
 ```java
 public void method() {
-    synchronized (this) {
-        // 同步代码
+    // 非同步代码
+    synchronized (lockObject) {
+        // 同步代码块
     }
+    // 非同步代码
 }
 ```
 
-### 锁对象选择
+### 不同锁对象的使用
 
 ```java
-public class SynchronizedBlock {
+public class SynchronizedBlockExample {
+    private int count1 = 0;
+    private int count2 = 0;
+    
+    // 使用不同的锁对象实现独立同步
     private final Object lock1 = new Object();
     private final Object lock2 = new Object();
     
-    public void method1() {
+    public void incrementCount1() {
         synchronized (lock1) {
-            // 使用lock1的同步代码
+            count1++;
         }
     }
     
-    public void method2() {
+    public void incrementCount2() {
         synchronized (lock2) {
-            // 使用lock2的同步代码，可与method1并发执行
+            count2++;
+        }
+    }
+    
+    // 这两个方法可以并发执行，因为使用不同的锁
+    public void batchIncrement1() {
+        synchronized (lock1) {
+            for (int i = 0; i < 1000; i++) {
+                count1++;
+            }
+        }
+    }
+    
+    public void batchIncrement2() {
+        synchronized (lock2) {
+            for (int i = 0; i < 1000; i++) {
+                count2++;
+            }
         }
     }
 }
 ```
 
+### synchronized方法 vs synchronized(this)
+
+```java
+public class SyncComparison {
+    private int value = 0;
+    
+    // 方法1：同步方法
+    public synchronized void method1() {
+        value++;
+        // 整个方法都被锁定
+        doOtherWork(); // 这部分也被锁定了
+    }
+    
+    // 方法2：同步代码块
+    public void method2() {
+        doPreWork(); // 这部分不需要锁定
+        
+        synchronized (this) {
+            value++; // 只锁定关键部分
+        }
+        
+        doPostWork(); // 这部分也不需要锁定
+    }
+    
+    private void doPreWork() { /* 一些不需要同步的操作 */ }
+    private void doOtherWork() { /* 一些不需要同步的操作 */ }
+    private void doPostWork() { /* 一些不需要同步的操作 */ }
+}
+```
+
+**关键点：**
+- `synchronized`方法等价于`synchronized(this)`包围整个方法体
+- 两者使用相同的锁（当前对象实例）
+- 同步代码块提供更好的性能，因为锁的持有时间更短
+
 ## 静态同步
 
-静态同步确保获取的是类级锁，所有类实例共享同一把锁。
+静态同步使用类级别的锁，所有实例共享同一把锁。
 
-### 同步静态方法
-
-```java
-public static synchronized void staticSynchronizedMethod() {
-    // 同步代码
-}
-```
-
-### 静态同步块
-
-```java
-public static void staticMethod() {
-    synchronized (ClassName.class) {
-        // 同步代码
-    }
-}
-```
-
-### 示例
+### 静态同步方法
 
 ```java
 public class StaticSyncExample {
     private static int staticCount = 0;
+    private int instanceCount = 0;
     
+    // 静态同步方法 - 锁定类对象
     public static synchronized void incrementStatic() {
         staticCount++;
     }
     
-    public static void incrementWithBlock() {
-        synchronized (StaticSyncExample.class) {
-            staticCount++;
-        }
+    // 实例同步方法 - 锁定实例对象
+    public synchronized void incrementInstance() {
+        instanceCount++;
     }
     
     public static int getStaticCount() {
         return staticCount;
     }
+    
+    public int getInstanceCount() {
+        return instanceCount;
+    }
 }
 ```
 
-## 示例：同步方法
+### 静态同步代码块
 
 ```java
-class Counter {
+public class StaticSyncBlockExample {
+    private static int staticCount = 0;
+    
+    public static void incrementWithBlock() {
+        // 其他非关键操作
+        
+        synchronized (StaticSyncBlockExample.class) {
+            staticCount++; // 只同步关键部分
+        }
+        
+        // 其他非关键操作
+    }
+    
+    // 等价的写法
+    public static void anotherIncrement() {
+        synchronized (StaticSyncBlockExample.class) {
+            staticCount++;
+        }
+    }
+}
+```
+
+### 实例锁 vs 类锁
+
+```java
+public class LockTypesDemo {
+    private static int staticValue = 0;
+    private int instanceValue = 0;
+    
+    // 使用类锁
+    public static synchronized void staticMethod1() {
+        staticValue++;
+    }
+    
+    public static void staticMethod2() {
+        synchronized (LockTypesDemo.class) {
+            staticValue++;
+        }
+    }
+    
+    // 使用实例锁
+    public synchronized void instanceMethod1() {
+        instanceValue++;
+    }
+    
+    public void instanceMethod2() {
+        synchronized (this) {
+            instanceValue++;
+        }
+    }
+    
+    public static void main(String[] args) {
+        LockTypesDemo obj1 = new LockTypesDemo();
+        LockTypesDemo obj2 = new LockTypesDemo();
+        
+        // 类锁：staticMethod1和staticMethod2之间互斥
+        // 实例锁：obj1和obj2的实例方法独立执行，不互斥
+    }
+}
+```
+
+## 锁的可重入性
+
+Java的同步锁是可重入的（reentrant），同一线程可以多次获取已持有的锁。
+
+### 可重入示例
+
+```java
+public class ReentrantExample {
     private int count = 0;
     
-    public synchronized void increment() {
+    public synchronized void outerMethod() {
+        System.out.println("进入 outerMethod，当前线程: " + Thread.currentThread().getName());
+        count++;
+        innerMethod(); // 重入调用
+    }
+    
+    public synchronized void innerMethod() {
+        System.out.println("进入 innerMethod，当前线程: " + Thread.currentThread().getName());
+        count++;
+        deepMethod(); // 继续重入
+    }
+    
+    public synchronized void deepMethod() {
+        System.out.println("进入 deepMethod，当前线程: " + Thread.currentThread().getName());
         count++;
     }
     
     public synchronized int getCount() {
         return count;
     }
-}
-
-public class SynchronizedMethodExample {
-    public static void main(String[] args) throws InterruptedException {
-        Counter counter = new Counter();
-        
-        Runnable task = () -> {
-            for (int i = 0; i < 1000; i++) {
-                counter.increment();
-            }
-        };
-        
-        Thread thread1 = new Thread(task);
-        Thread thread2 = new Thread(task);
-        
-        thread1.start();
-        thread2.start();
-        
-        thread1.join();
-        thread2.join();
-        
-        System.out.println("最终计数: " + counter.getCount());
-    }
-}
-```
-
-**输出结果：**
-```
-最终计数: 2000
-```
-
-### 代码解释
-
-- `Counter`类的`increment`方法被声明为`synchronized`
-- 两个线程各执行1000次`increment`操作
-- 最终计数为2000，说明同步机制避免了竞态条件
-
-## 示例：同步块
-
-```java
-class Counter {
-    private int count = 0;
-    private static final Object lock = new Object();
-    
-    public void increment() {
-        synchronized (lock) {
-            count++;
-        }
-    }
-    
-    public int getCount() {
-        synchronized (lock) {
-            return count;
-        }
-    }
-}
-
-public class SynchronizedBlockExample {
-    public static void main(String[] args) throws InterruptedException {
-        Counter counter = new Counter();
-        
-        Runnable task = () -> {
-            for (int i = 0; i < 1000; i++) {
-                counter.increment();
-            }
-        };
-        
-        Thread thread1 = new Thread(task);
-        Thread thread2 = new Thread(task);
-        
-        thread1.start();
-        thread2.start();
-        
-        thread1.join();
-        thread2.join();
-        
-        System.out.println("最终计数: " + counter.getCount());
-    }
-}
-```
-
-**输出结果：**
-```
-最终计数: 2000
-```
-
-### 优势
-
-- 更细粒度的控制
-- 可以选择不同的锁对象
-- 减少锁持有时间，提高并发性能
-
-## 可重入同步
-
-Java的同步锁是可重入的。如果线程已持有某个对象的锁，它可以再次进入该对象的任何同步方法或块。
-
-```java
-class ReentrantExample {
-    public synchronized void method1() {
-        System.out.println("进入 method1");
-        method2(); // 可重入调用
-    }
-    
-    public synchronized void method2() {
-        System.out.println("进入 method2");
-        method3(); // 继续可重入调用
-    }
-    
-    public synchronized void method3() {
-        System.out.println("进入 method3");
-    }
     
     public static void main(String[] args) {
         ReentrantExample example = new ReentrantExample();
-        example.method1();
+        example.outerMethod();
+        System.out.println("最终计数: " + example.getCount());
     }
 }
 ```
 
-**输出结果：**
+**输出：**
 ```
-进入 method1
-进入 method2
-进入 method3
+进入 outerMethod，当前线程: main
+进入 innerMethod，当前线程: main
+进入 deepMethod，当前线程: main
+最终计数: 3
 ```
 
 ### 可重入的原理
 
-- 每个锁都有一个计数器，记录获取锁的次数
-- 同一线程每次获取锁时计数器加1
-- 释放锁时计数器减1，直到为0才真正释放锁
+每个锁都维护：
+- **持有者线程**：当前持有锁的线程
+- **重入计数**：同一线程获取锁的次数
 
-## 同步与性能
+当线程获取锁时：
+1. 如果锁未被持有，设置持有者并将计数设为1
+2. 如果当前线程已持有锁，计数加1
+3. 如果其他线程持有锁，当前线程阻塞等待
 
-### 性能开销
+当线程释放锁时：
+1. 计数减1
+2. 当计数为0时，释放锁并清空持有者
 
-```java
-public class PerformanceComparison {
-    private int count = 0;
-    private final Object lock = new Object();
-    
-    // 无同步版本
-    public void unsafeIncrement() {
-        count++;
-    }
-    
-    // 同步方法版本
-    public synchronized void syncMethodIncrement() {
-        count++;
-    }
-    
-    // 同步块版本
-    public void syncBlockIncrement() {
-        synchronized (lock) {
-            count++;
-        }
-    }
-    
-    // 减少锁粒度的版本
-    public void optimizedIncrement() {
-        int temp;
-        synchronized (lock) {
-            temp = count + 1;
-        }
-        // 其他非关键操作...
-        synchronized (lock) {
-            count = temp;
-        }
-    }
-}
-```
+## volatile关键字
 
-### 性能优化建议
+`volatile`关键字确保变量的可见性，但不保证原子性。
 
-1. **减少锁的粒度**：只锁定必要的代码段
-2. **避免嵌套锁**：防止死锁，提高性能
-3. **使用读写锁**：读多写少的场景下使用`ReadWriteLock`
-4. **考虑无锁数据结构**：如`AtomicInteger`、`ConcurrentHashMap`
-
-## 高级同步机制
-
-### 1. volatile关键字
-
-`volatile` 关键字用于确保多线程环境中变量的可见性。当一个变量被 `volatile` 修饰时，Java 保证该变量不会被缓存到线程本地内存，它直接从主内存读取。这样，每个线程都会看到最新的变量值，确保了 **可见性**。
-
-::: note
-
-在默认情况下，每个线程会将共享变量从主内存复制到自己的线程内存中，这样就可能导致多个线程中保存的副本值不一致，从而引发数据不一致问题。
-
-:::
-
-虽然 `volatile` 确保了变量的可见性，但它并不能保证操作的 **原子性**。因此，`volatile` 适用于简单类型的变量（如 `int`, `boolean` 等），可以确保对这些变量的简单赋值和读取操作是 **不中断的**。然而，如果变量的值依赖于它自身的前一个值（如递增操作 `x++`），`volatile` 并不能保证线程安全，此时仍需要使用 `synchronized` 或其他并发控制工具来确保 **原子性**。
-
-总的来说，`volatile` 提供了一种轻量级的同步机制，能够提高性能，但它并不适用于所有情况。在使用时需要特别小心，不能误认为 `volatile` 可以完全代替 `synchronized`。
-
+### 基本概念
 
 ```java
 public class VolatileExample {
-    private volatile boolean flag = false;
+    private volatile boolean stopFlag = false;
+    private volatile int counter = 0;
     
-    public void setFlag() {
-        flag = true; // 对所有线程立即可见
+    public void startWorking() {
+        new Thread(() -> {
+            while (!stopFlag) {
+                // 执行工作
+                counter++; // 注意：这不是原子操作
+            }
+            System.out.println("工作线程停止");
+        }).start();
     }
     
-    public boolean isFlag() {
-        return flag;
+    public void stopWorking() {
+        stopFlag = true; // 立即对所有线程可见
+    }
+    
+    public int getCounter() {
+        return counter;
     }
 }
 ```
 
-更多参考，[volatile关键字](./volatile.md)
+### volatile vs synchronized
 
-### 2. wait()和notify()机制
+| 特性 | volatile | synchronized |
+|------|----------|--------------|
+| 可见性 | ✓ | ✓ |
+| 原子性 | ✗ | ✓ |
+| 阻塞性 | ✗ | ✓ |
+| 性能开销 | 低 | 高 |
+| 适用场景 | 简单状态标记 | 复杂临界区 |
+
+### 适用场景
+
+```java
+public class VolatileUseCases {
+    // 1. 状态标记
+    private volatile boolean initialized = false;
+    
+    public void init() {
+        // 执行初始化
+        initialized = true; // 状态变更对所有线程可见
+    }
+    
+    public boolean isInitialized() {
+        return initialized;
+    }
+    
+    // 2. 单例模式的双重检查锁定
+    private static volatile VolatileUseCases instance;
+    
+    public static VolatileUseCases getInstance() {
+        if (instance == null) {
+            synchronized (VolatileUseCases.class) {
+                if (instance == null) {
+                    instance = new VolatileUseCases();
+                }
+            }
+        }
+        return instance;
+    }
+    
+    // 3. 不适用的场景（需要原子性）
+    private volatile int count = 0;
+    
+    public void wrongIncrement() {
+        count++; // 不安全！需要使用synchronized或AtomicInteger
+    }
+}
+```
+
+## wait()和notify()机制
+
+`wait()`和`notify()`提供了线程间的通信机制，必须在同步块中使用。
+
+### 基本用法
 
 ```java
 public class WaitNotifyExample {
     private final Object lock = new Object();
     private boolean condition = false;
+    private String data = "";
     
-    public void waitForCondition() throws InterruptedException {
+    // 消费者线程
+    public void consumer() throws InterruptedException {
         synchronized (lock) {
             while (!condition) {
+                System.out.println("消费者等待数据...");
                 lock.wait(); // 释放锁并等待
             }
-            // 条件满足，继续执行
+            System.out.println("消费者接收到数据: " + data);
+            condition = false; // 重置条件
         }
     }
     
-    public void setCondition() {
+    // 生产者线程
+    public void producer(String newData) {
         synchronized (lock) {
+            data = newData;
             condition = true;
+            System.out.println("生产者生产数据: " + data);
             lock.notify(); // 唤醒一个等待的线程
         }
     }
 }
 ```
 
-### 3. 使用java.util.concurrent包
+### 生产者-消费者模式
+
+```java
+import java.util.LinkedList;
+import java.util.Queue;
+
+public class ProducerConsumerExample {
+    private final Queue<Integer> queue = new LinkedList<>();
+    private final int MAX_SIZE = 5;
+    private final Object lock = new Object();
+    
+    public void produce(int item) throws InterruptedException {
+        synchronized (lock) {
+            while (queue.size() == MAX_SIZE) {
+                System.out.println("队列已满，生产者等待...");
+                lock.wait();
+            }
+            
+            queue.offer(item);
+            System.out.println("生产: " + item + "，队列大小: " + queue.size());
+            lock.notifyAll(); // 唤醒所有等待的线程
+        }
+    }
+    
+    public int consume() throws InterruptedException {
+        synchronized (lock) {
+            while (queue.isEmpty()) {
+                System.out.println("队列为空，消费者等待...");
+                lock.wait();
+            }
+            
+            int item = queue.poll();
+            System.out.println("消费: " + item + "，队列大小: " + queue.size());
+            lock.notifyAll(); // 唤醒所有等待的线程
+            return item;
+        }
+    }
+    
+    public static void main(String[] args) {
+        ProducerConsumerExample example = new ProducerConsumerExample();
+        
+        // 创建生产者线程
+        Thread producer = new Thread(() -> {
+            try {
+                for (int i = 1; i <= 10; i++) {
+                    example.produce(i);
+                    Thread.sleep(100);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        
+        // 创建消费者线程
+        Thread consumer = new Thread(() -> {
+            try {
+                for (int i = 1; i <= 10; i++) {
+                    example.consume();
+                    Thread.sleep(150);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        
+        producer.start();
+        consumer.start();
+    }
+}
+```
+
+### 注意事项
+
+1. **必须在同步块中使用**：`wait()`、`notify()`和`notifyAll()`必须在对应对象的同步块中调用
+2. **使用while循环检查条件**：避免虚假唤醒问题
+3. **notify() vs notifyAll()**：
+   - `notify()`：唤醒一个等待的线程
+   - `notifyAll()`：唤醒所有等待的线程
+
+## 高级同步工具
+
+Java并发包（`java.util.concurrent`）提供了更高级的同步工具。
+
+### ReentrantLock
 
 ```java
 import java.util.concurrent.locks.ReentrantLock;
@@ -409,6 +616,19 @@ public class ReentrantLockExample {
         }
     }
     
+    // 尝试获取锁
+    public boolean tryIncrement() {
+        if (lock.tryLock()) {
+            try {
+                count++;
+                return true;
+            } finally {
+                lock.unlock();
+            }
+        }
+        return false; // 获取锁失败
+    }
+    
     public int getCount() {
         lock.lock();
         try {
@@ -420,39 +640,182 @@ public class ReentrantLockExample {
 }
 ```
 
-## 同步最佳实践
-
-### 1. 选择合适的锁粒度
+### ReadWriteLock
 
 ```java
-public class GranularityExample {
-    private final Object readLock = new Object();
-    private final Object writeLock = new Object();
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+public class ReadWriteLockExample {
+    private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private String data = "initial data";
     
-    private String data;
-    
+    // 读操作 - 可以并发执行
     public String read() {
-        synchronized (readLock) {
+        rwLock.readLock().lock();
+        try {
+            System.out.println("读取数据: " + data);
             return data;
+        } finally {
+            rwLock.readLock().unlock();
         }
     }
     
+    // 写操作 - 独占执行
     public void write(String newData) {
-        synchronized (writeLock) {
+        rwLock.writeLock().lock();
+        try {
+            System.out.println("写入数据: " + newData);
             data = newData;
+        } finally {
+            rwLock.writeLock().unlock();
         }
     }
 }
 ```
 
-### 2. 避免死锁
+### AtomicInteger
 
 ```java
-public class DeadlockAvoidance {
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class AtomicExample {
+    private final AtomicInteger count = new AtomicInteger(0);
+    
+    public void increment() {
+        count.incrementAndGet(); // 原子操作
+    }
+    
+    public int getCount() {
+        return count.get();
+    }
+    
+    // 比较并交换
+    public boolean compareAndSet(int expected, int update) {
+        return count.compareAndSet(expected, update);
+    }
+}
+```
+
+## 性能考虑
+
+### 同步的性能开销
+
+```java
+public class PerformanceBenchmark {
+    private int count = 0;
+    private final Object lock = new Object();
+    private final AtomicInteger atomicCount = new AtomicInteger(0);
+    
+    // 最快 - 无同步（但不安全）
+    public void unsafeIncrement() {
+        count++;
+    }
+    
+    // 较慢 - 同步方法
+    public synchronized void syncMethodIncrement() {
+        count++;
+    }
+    
+    // 较慢 - 同步块
+    public void syncBlockIncrement() {
+        synchronized (lock) {
+            count++;
+        }
+    }
+    
+    // 较快 - 原子操作
+    public void atomicIncrement() {
+        atomicCount.incrementAndGet();
+    }
+    
+    // 性能测试
+    public static void benchmark(String name, Runnable operation, int iterations) {
+        long start = System.nanoTime();
+        for (int i = 0; i < iterations; i++) {
+            operation.run();
+        }
+        long end = System.nanoTime();
+        System.out.printf("%s: %.2f ms%n", name, (end - start) / 1_000_000.0);
+    }
+    
+    public static void main(String[] args) {
+        PerformanceBenchmark benchmark = new PerformanceBenchmark();
+        int iterations = 10_000_000;
+        
+        benchmark(name: "无同步", benchmark::unsafeIncrement, iterations);
+        benchmark("同步方法", benchmark::syncMethodIncrement, iterations);
+        benchmark("同步块", benchmark::syncBlockIncrement, iterations);
+        benchmark("原子操作", benchmark::atomicIncrement, iterations);
+    }
+}
+```
+
+### 性能优化策略
+
+1. **减少锁的范围**：只锁定必要的代码
+2. **选择合适的同步机制**：
+   - 简单操作使用原子类
+   - 读多写少使用读写锁
+   - 复杂逻辑使用ReentrantLock
+3. **避免锁竞争**：使用不同的锁对象
+4. **考虑无锁数据结构**：如ConcurrentHashMap
+
+## 最佳实践
+
+### 1. 锁的选择和使用
+
+```java
+public class BestPracticesExample {
+    // 1. 使用private final锁对象
+    private final Object lock = new Object();
+    private int value = 0;
+    
+    // 2. 锁的范围尽可能小
+    public void goodPractice() {
+        doPreparation(); // 不需要同步的预处理
+        
+        synchronized (lock) {
+            value++; // 只同步关键部分
+        }
+        
+        doCleanup(); // 不需要同步的后处理
+    }
+    
+    // 3. 避免在锁内调用外部方法
+    public void badPractice() {
+        synchronized (lock) {
+            value++;
+            externalMethod(); // 危险：可能导致死锁
+        }
+    }
+    
+    // 4. 使用try-finally确保锁释放（针对显式锁）
+    private final ReentrantLock explicitLock = new ReentrantLock();
+    
+    public void safeExplicitLock() {
+        explicitLock.lock();
+        try {
+            // 关键代码
+        } finally {
+            explicitLock.unlock();
+        }
+    }
+    
+    private void doPreparation() { /* 准备工作 */ }
+    private void doCleanup() { /* 清理工作 */ }
+    private void externalMethod() { /* 外部方法调用 */ }
+}
+```
+
+### 2. 死锁预防
+
+```java
+public class DeadlockPrevention {
     private static final Object lock1 = new Object();
     private static final Object lock2 = new Object();
     
-    // 始终按照相同顺序获取锁
+    // 方法1：按固定顺序获取锁
     public void method1() {
         synchronized (lock1) {
             synchronized (lock2) {
@@ -468,89 +831,469 @@ public class DeadlockAvoidance {
             }
         }
     }
+    
+    // 方法2：使用超时机制
+    private final ReentrantLock lockA = new ReentrantLock();
+    private final ReentrantLock lockB = new ReentrantLock();
+    
+    public boolean tryWithTimeout() {
+        boolean acquiredA = false, acquiredB = false;
+        try {
+            acquiredA = lockA.tryLock(1, TimeUnit.SECONDS);
+            if (acquiredA) {
+                acquiredB = lockB.tryLock(1, TimeUnit.SECONDS);
+                if (acquiredB) {
+                    // 执行业务逻辑
+                    return true;
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } finally {
+            if (acquiredB) lockB.unlock();
+            if (acquiredA) lockA.unlock();
+        }
+        return false;
+    }
 }
 ```
 
-### 3. 使用不可变对象
+### 3. 不可变对象
 
 ```java
 public final class ImmutableCounter {
-    private final int count;
+    private final int value;
     
-    public ImmutableCounter(int count) {
-        this.count = count;
+    public ImmutableCounter(int value) {
+        this.value = value;
     }
     
-    public int getCount() {
-        return count;
+    public int getValue() {
+        return value;
     }
     
     public ImmutableCounter increment() {
-        return new ImmutableCounter(count + 1);
+        return new ImmutableCounter(value + 1);
+    }
+    
+    public ImmutableCounter add(int delta) {
+        return new ImmutableCounter(value + delta);
+    }
+}
+
+// 使用示例
+public class ImmutableExample {
+    private volatile ImmutableCounter counter = new ImmutableCounter(0);
+    
+    public void increment() {
+        // 无需同步，使用CAS操作
+        ImmutableCounter current, updated;
+        do {
+            current = counter;
+            updated = current.increment();
+        } while (!compareAndSet(current, updated));
+    }
+    
+    private boolean compareAndSet(ImmutableCounter expected, ImmutableCounter update) {
+        // 简化的CAS操作示例
+        synchronized (this) {
+            if (counter == expected) {
+                counter = update;
+                return true;
+            }
+            return false;
+        }
     }
 }
 ```
 
 ## 常见陷阱
 
-### 1. 同步错误的对象
+### 1. 锁对象选择错误
 
 ```java
-// 错误示例
-public class WrongSync {
-    private Integer count = 0; // Integer是不可变的
+public class LockObjectMistakes {
+    // ❌ 错误：使用可变对象作为锁
+    private Integer count = 0;
     
-    public void increment() {
-        synchronized (count) { // 错误：锁对象可能改变
+    public void badLock() {
+        synchronized (count) { // 危险：count对象可能改变
             count++;
         }
     }
-}
-
-// 正确示例
-public class CorrectSync {
-    private int count = 0;
+    
+    // ❌ 错误：使用字符串字面量作为锁
+    private final String LOCK = "LOCK";
+    
+    public void stringLock() {
+        synchronized (LOCK) { // 危险：字符串可能被其他代码复用
+            // 业务逻辑
+        }
+    }
+    
+    // ✅ 正确：使用专门的锁对象
     private final Object lock = new Object();
+    private int value = 0;
     
-    public void increment() {
-        synchronized (lock) { // 正确：使用固定的锁对象
-            count++;
+    public void correctLock() {
+        synchronized (lock) {
+            value++;
         }
     }
 }
 ```
 
-### 2. 字符串作为锁对象
+### 2. 同步方法的继承问题
 
 ```java
-// 避免使用字符串字面量作为锁
-public class StringLockProblem {
-    private final String lock = "LOCK"; // 危险：字符串可能被其他代码复用
+class Parent {
+    public synchronized void method() {
+        System.out.println("Parent method");
+    }
+}
+
+class Child extends Parent {
+    // ❌ 错误：子类方法不自动同步
+    @Override
+    public void method() { // 没有synchronized关键字
+        System.out.println("Child method");
+        super.method(); // 调用父类同步方法
+    }
     
-    public void method() {
+    // ✅ 正确：显式添加synchronized
+    public synchronized void correctMethod() {
+        System.out.println("Child synchronized method");
+    }
+}
+```
+
+### 3. 集合类的同步陷阱
+
+```java
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class CollectionSyncTraps {
+    // ❌ 错误：Vector是同步的，但组合操作不是原子的
+    private final Vector<Integer> vector = new Vector<>();
+    
+    public void badVectorUsage() {
+        if (!vector.isEmpty()) { // 检查
+            vector.remove(0); // 操作 - 可能抛出异常
+        }
+    }
+    
+    // ✅ 正确：手动同步组合操作
+    public void correctVectorUsage() {
+        synchronized (vector) {
+            if (!vector.isEmpty()) {
+                vector.remove(0);
+            }
+        }
+    }
+    
+    // ✅ 更好：使用并发集合
+    private final Map<String, Integer> concurrentMap = new ConcurrentHashMap<>();
+    
+    public void safeConcurrentMapUsage() {
+        // 原子操作：如果键不存在则添加
+        concurrentMap.putIfAbsent("key", 1);
+        
+        // 原子操作：计算并更新
+        concurrentMap.compute("key", (k, v) -> v == null ? 1 : v + 1);
+    }
+}
+```
+
+### 4. wait()和notify()的误用
+
+```java
+public class WaitNotifyMistakes {
+    private final Object lock = new Object();
+    private boolean condition = false;
+    
+    // ❌ 错误：使用if而不是while
+    public void badWait() throws InterruptedException {
         synchronized (lock) {
-            // 可能与其他使用相同字符串的代码产生意外同步
+            if (!condition) { // 危险：虚假唤醒
+                lock.wait();
+            }
+            // 处理逻辑
+        }
+    }
+    
+    // ✅ 正确：使用while循环
+    public void correctWait() throws InterruptedException {
+        synchronized (lock) {
+            while (!condition) { // 防止虚假唤醒
+                lock.wait();
+            }
+            // 处理逻辑
+        }
+    }
+    
+    // ❌ 错误：在同步块外调用wait()
+    public void wrongWaitUsage() throws InterruptedException {
+        lock.wait(); // 抛出IllegalMonitorStateException
+    }
+}
+```
+
+### 5. 性能陷阱
+
+```java
+public class PerformanceTraps {
+    // ❌ 错误：过度同步
+    private final List<String> list = new ArrayList<>();
+    
+    public synchronized void addItem(String item) {
+        list.add(item); // 整个方法被锁定
+        logOperation(item); // 日志操作也被锁定了
+        validateItem(item); // 验证操作也被锁定了
+    }
+    
+    // ✅ 正确：最小化同步范围
+    public void optimizedAddItem(String item) {
+        validateItem(item); // 预先验证，无需同步
+        
+        synchronized (list) {
+            list.add(item); // 只同步关键操作
+        }
+        
+        logOperation(item); // 日志操作，无需同步
+    }
+    
+    private void logOperation(String item) { /* 日志记录 */ }
+    private void validateItem(String item) { /* 验证逻辑 */ }
+}
+```
+
+## 实际应用场景
+
+### 1. 单例模式实现
+
+```java
+// 双重检查锁定单例
+public class Singleton {
+    private static volatile Singleton instance;
+    
+    private Singleton() {}
+    
+    public static Singleton getInstance() {
+        if (instance == null) { // 第一次检查
+            synchronized (Singleton.class) {
+                if (instance == null) { // 第二次检查
+                    instance = new Singleton();
+                }
+            }
+        }
+        return instance;
+    }
+}
+
+// 枚举单例（推荐）
+public enum SingletonEnum {
+    INSTANCE;
+    
+    public void doSomething() {
+        // 业务逻辑
+    }
+}
+```
+
+### 2. 线程安全的缓存
+
+```java
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+public class ThreadSafeCache<K, V> {
+    private final Map<K, V> cache = new ConcurrentHashMap<>();
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    
+    public V get(K key) {
+        return cache.get(key);
+    }
+    
+    public void put(K key, V value) {
+        cache.put(key, value);
+    }
+    
+    public void clear() {
+        cache.clear();
+    }
+    
+    // 复杂操作需要额外同步
+    public V computeIfAbsent(K key, Function<K, V> mappingFunction) {
+        return cache.computeIfAbsent(key, mappingFunction);
+    }
+}
+```
+
+### 3. 线程池任务管理
+
+```java
+import java.util.concurrent.*;
+
+public class TaskManager {
+    private final ExecutorService executor = Executors.newFixedThreadPool(10);
+    private final Map<String, Future<?>> runningTasks = new ConcurrentHashMap<>();
+    
+    public void submitTask(String taskId, Runnable task) {
+        Future<?> future = executor.submit(() -> {
+            try {
+                task.run();
+            } finally {
+                runningTasks.remove(taskId);
+            }
+        });
+        
+        runningTasks.put(taskId, future);
+    }
+    
+    public boolean cancelTask(String taskId) {
+        Future<?> future = runningTasks.get(taskId);
+        if (future != null) {
+            boolean cancelled = future.cancel(true);
+            if (cancelled) {
+                runningTasks.remove(taskId);
+            }
+            return cancelled;
+        }
+        return false;
+    }
+    
+    public void shutdown() {
+        // 取消所有运行中的任务
+        runningTasks.values().forEach(future -> future.cancel(true));
+        runningTasks.clear();
+        
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
         }
     }
 }
 ```
 
-## 结论
+## 调试和监控
 
-Java同步机制是确保多线程环境下线程安全的关键工具。通过同步方法、同步块和静态同步，可以有效控制多线程对共享资源的访问。
+### 1. 死锁检测
 
-### 核心要点
+```java
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
 
-- **正确选择同步策略**：根据具体需求选择同步方法或同步块
-- **合理控制锁粒度**：在线程安全和性能之间找到平衡
-- **避免常见陷阱**：如死锁、锁对象选择错误等
-- **考虑现代替代方案**：如`java.util.concurrent`包中的高级同步工具
+public class DeadlockDetector {
+    private final ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
+    
+    public void detectDeadlock() {
+        long[] deadlockedThreads = threadBean.findDeadlockedThreads();
+        if (deadlockedThreads != null) {
+            System.err.println("检测到死锁！涉及线程数量: " + deadlockedThreads.length);
+            for (long threadId : deadlockedThreads) {
+                ThreadInfo threadInfo = threadBean.getThreadInfo(threadId);
+                System.err.println("死锁线程: " + threadInfo.getThreadName());
+                System.err.println("状态: " + threadInfo.getThreadState());
+                System.err.println("锁信息: " + threadInfo.getLockInfo());
+            }
+        }
+    }
+    
+    // 定期检查死锁
+    public void startDeadlockMonitoring() {
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+        scheduler.scheduleAtFixedRate(this::detectDeadlock, 0, 10, TimeUnit.SECONDS);
+    }
+}
+```
 
-### 使用原则
+### 2. 同步性能监控
 
-- 只在必要时使用同步
-- 尽可能减少同步代码的范围
-- 优先考虑不可变对象和线程安全的数据结构
-- 在复杂场景下考虑使用专门的并发工具类
+```java
+public class SyncMonitor {
+    private final AtomicLong syncCount = new AtomicLong(0);
+    private final AtomicLong totalWaitTime = new AtomicLong(0);
+    
+    public void monitoredSync(Runnable task) {
+        long startTime = System.nanoTime();
+        syncCount.incrementAndGet();
+        
+        synchronized (this) {
+            long waitTime = System.nanoTime() - startTime;
+            totalWaitTime.addAndGet(waitTime);
+            task.run();
+        }
+    }
+    
+    public void printStatistics() {
+        long count = syncCount.get();
+        long totalWait = totalWaitTime.get();
+        
+        System.out.println("同步调用次数: " + count);
+        System.out.println("总等待时间: " + totalWait / 1_000_000 + " ms");
+        if (count > 0) {
+            System.out.println("平均等待时间: " + (totalWait / count) / 1_000 + " μs");
+        }
+    }
+}
+```
 
-通过谨慎使用同步机制，可以在保证线程安全的同时，最大化程序的并发性能。
+## 总结
+
+Java的同步机制是多线程编程的核心工具，正确使用这些机制对于构建高性能、线程安全的应用程序至关重要。
+
+### 关键要点回顾
+
+1. **基础同步机制**
+   - `synchronized`关键字是最基本的同步工具
+   - 理解实例锁vs类锁的区别
+   - 掌握可重入锁的概念
+
+2. **高级同步工具**
+   - `volatile`关键字用于保证可见性
+   - `wait()`/`notify()`用于线程间通信
+   - `java.util.concurrent`包提供更强大的工具
+
+3. **性能优化**
+   - 最小化同步范围
+   - 选择合适的同步机制
+   - 考虑使用并发数据结构
+
+4. **最佳实践**
+   - 使用私有final锁对象
+   - 避免在锁内调用外部方法
+   - 预防死锁的发生
+
+5. **常见陷阱**
+   - 锁对象选择错误
+   - 组合操作的原子性问题
+   - 过度同步导致的性能问题
+
+### 选择指南
+
+| 场景 | 推荐方案 | 说明 |
+|------|----------|------|
+| 简单状态标记 | `volatile` | 轻量级，保证可见性 |
+| 简单原子操作 | `AtomicXxx` | 无锁，高性能 |
+| 一般同步需求 | `synchronized` | 简单易用，JVM优化良好 |
+| 复杂同步逻辑 | `ReentrantLock` | 功能丰富，灵活控制 |
+| 读多写少 | `ReadWriteLock` | 提高读操作并发性 |
+| 线程间通信 | `wait`/`notify` 或 `BlockingQueue` | 根据复杂度选择 |
+| 高并发集合 | `ConcurrentHashMap` 等 | 专门优化的并发容器 |
+
+### 学习建议
+
+1. **理论与实践结合**：通过编写测试程序验证同步机制的行为
+2. **性能测试**：对比不同同步方案的性能差异
+3. **工具使用**：学会使用JConsole、VisualVM等工具分析线程状态
+4. **源码阅读**：深入了解JDK并发类的实现原理
+5. **持续学习**：关注Java新版本中的并发改进
+
+掌握Java同步机制需要大量的实践和经验积累。从简单的`synchronized`开始，逐步学习更高级的并发工具，并在实际项目中应用这些知识，才能真正掌握多线程编程的精髓。

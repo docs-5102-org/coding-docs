@@ -271,6 +271,7 @@ JPA 为 Java 开发者提供了强大的 ORM 功能，通过实体映射、JPQL 
 
 ### Spring Data JPA
 - **Spring Data JPA 官方项目**: https://spring.io/projects/spring-data-jpa/
+- https://www.php.cn/faq/361545.html
 
 ## 社区教程资源
 

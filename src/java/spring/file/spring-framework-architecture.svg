@@ -1,0 +1,145 @@
+<svg viewBox="0 0 1000 800" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1000" height="800" fill="#f8f9fa"/>
+  
+  <!-- Title -->
+  <text x="500" y="30" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="#2c3e50">Spring Framework Architecture</text>
+  
+  <!-- Test Layer -->
+  <g>
+    <rect x="50" y="60" width="900" height="80" rx="10" fill="#e3f2fd" stroke="#1976d2" stroke-width="2"/>
+    <text x="500" y="85" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#1976d2">Test</text>
+    <text x="500" y="110" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#1976d2">Spring Test • TestContext Framework • Mock Objects</text>
+    <text x="500" y="125" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#1976d2">Integration Testing • Unit Testing</text>
+  </g>
+  
+  <!-- Web Layer -->
+  <g>
+    <rect x="50" y="160" width="900" height="100" rx="10" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2"/>
+    <text x="500" y="185" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#7b1fa2">Web</text>
+    
+    <!-- Web modules -->
+    <rect x="70" y="200" width="200" height="45" rx="5" fill="#ffffff" stroke="#7b1fa2"/>
+    <text x="170" y="220" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#7b1fa2">Web</text>
+    <text x="170" y="235" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#7b1fa2">Web Integration</text>
+    
+    <rect x="290" y="200" width="200" height="45" rx="5" fill="#ffffff" stroke="#7b1fa2"/>
+    <text x="390" y="220" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#7b1fa2">Web-Servlet</text>
+    <text x="390" y="235" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#7b1fa2">Spring MVC</text>
+    
+    <rect x="510" y="200" width="200" height="45" rx="5" fill="#ffffff" stroke="#7b1fa2"/>
+    <text x="610" y="220" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#7b1fa2">WebSocket</text>
+    <text x="610" y="235" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#7b1fa2">WebSocket Support</text>
+    
+    <rect x="730" y="200" width="200" height="45" rx="5" fill="#ffffff" stroke="#7b1fa2"/>
+    <text x="830" y="220" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#7b1fa2">Web-Portlet</text>
+    <text x="830" y="235" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#7b1fa2">Portlet MVC</text>
+  </g>
+  
+  <!-- AOP & Instrumentation -->
+  <g>
+    <rect x="50" y="280" width="440" height="80" rx="10" fill="#fff3e0" stroke="#f57c00" stroke-width="2"/>
+    <text x="270" y="305" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#f57c00">AOP (Aspect Oriented Programming)</text>
+    <text x="270" y="325" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#f57c00">AOP • Aspects • Method Interceptors</text>
+    <text x="270" y="340" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#f57c00">Pointcuts • AspectJ Integration</text>
+    <text x="270" y="355" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#f57c00">Cross-cutting Concerns</text>
+    
+    <rect x="510" y="280" width="440" height="80" rx="10" fill="#e8f5e8" stroke="#388e3c" stroke-width="2"/>
+    <text x="730" y="305" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#388e3c">Instrumentation</text>
+    <text x="730" y="325" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#388e3c">Class Instrumentation</text>
+    <text x="730" y="340" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#388e3c">ClassLoader Implementations</text>
+    <text x="730" y="355" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#388e3c">Application Server Support</text>
+  </g>
+  
+  <!-- Data Access/Integration -->
+  <g>
+    <rect x="50" y="380" width="900" height="120" rx="10" fill="#fce4ec" stroke="#c2185b" stroke-width="2"/>
+    <text x="500" y="405" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#c2185b">Data Access/Integration</text>
+    
+    <!-- Data Access modules -->
+    <rect x="70" y="420" width="160" height="65" rx="5" fill="#ffffff" stroke="#c2185b"/>
+    <text x="150" y="440" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#c2185b">JDBC</text>
+    <text x="150" y="455" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#c2185b">JDBC Abstraction</text>
+    <text x="150" y="470" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#c2185b">Exception Handling</text>
+    
+    <rect x="250" y="420" width="160" height="65" rx="5" fill="#ffffff" stroke="#c2185b"/>
+    <text x="330" y="440" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#c2185b">ORM</text>
+    <text x="330" y="455" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#c2185b">JPA • Hibernate</text>
+    <text x="330" y="470" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#c2185b">JDO • iBATIS</text>
+    
+    <rect x="430" y="420" width="160" height="65" rx="5" fill="#ffffff" stroke="#c2185b"/>
+    <text x="510" y="440" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#c2185b">OXM</text>
+    <text x="510" y="455" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#c2185b">Object/XML Mapping</text>
+    <text x="510" y="470" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#c2185b">JAXB • Castor</text>
+    
+    <rect x="610" y="420" width="160" height="65" rx="5" fill="#ffffff" stroke="#c2185b"/>
+    <text x="690" y="440" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#c2185b">JMS</text>
+    <text x="690" y="455" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#c2185b">Java Messaging</text>
+    <text x="690" y="470" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#c2185b">Message Producers/Consumers</text>
+    
+    <rect x="790" y="420" width="160" height="65" rx="5" fill="#ffffff" stroke="#c2185b"/>
+    <text x="870" y="440" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#c2185b">Transaction</text>
+    <text x="870" y="455" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#c2185b">Programmatic &amp;</text>
+    <text x="870" y="470" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#c2185b">Declarative TX</text>
+  </g>
+  
+  <!-- Core Container (Foundation) -->
+  <g>
+    <rect x="50" y="520" width="900" height="150" rx="10" fill="#e8f5e8" stroke="#4caf50" stroke-width="3"/>
+    <text x="500" y="545" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#2e7d32">Core Container (Foundation)</text>
+    
+    <!-- Core Container modules -->
+    <rect x="100" y="565" width="180" height="90" rx="5" fill="#ffffff" stroke="#4caf50" stroke-width="2"/>
+    <text x="190" y="585" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#2e7d32">Core</text>
+    <text x="190" y="605" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">IoC (Inversion of Control)</text>
+    <text x="190" y="620" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">Dependency Injection</text>
+    <text x="190" y="635" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">Utilities</text>
+    <text x="190" y="650" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">Type Conversion</text>
+    
+    <rect x="300" y="565" width="180" height="90" rx="5" fill="#ffffff" stroke="#4caf50" stroke-width="2"/>
+    <text x="390" y="585" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#2e7d32">Beans</text>
+    <text x="390" y="605" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">BeanFactory</text>
+    <text x="390" y="620" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">Bean Definition</text>
+    <text x="390" y="635" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">Bean Lifecycle</text>
+    <text x="390" y="650" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">Factory Pattern</text>
+    
+    <rect x="500" y="565" width="180" height="90" rx="5" fill="#ffffff" stroke="#4caf50" stroke-width="2"/>
+    <text x="590" y="585" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#2e7d32">Context</text>
+    <text x="590" y="605" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">ApplicationContext</text>
+    <text x="590" y="620" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">Event Propagation</text>
+    <text x="590" y="635" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">Internationalization</text>
+    <text x="590" y="650" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">Resource Loading</text>
+    
+    <rect x="700" y="565" width="180" height="90" rx="5" fill="#ffffff" stroke="#4caf50" stroke-width="2"/>
+    <text x="790" y="585" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#2e7d32">Expression Language</text>
+    <text x="790" y="605" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">SpEL</text>
+    <text x="790" y="620" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">Runtime Object Graphs</text>
+    <text x="790" y="635" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">Method Invocation</text>
+    <text x="790" y="650" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#2e7d32">Property Access</text>
+  </g>
+  
+  <!-- Framework Features -->
+  <g>
+    <rect x="50" y="690" width="900" height="90" rx="10" fill="#f5f5f5" stroke="#666666" stroke-width="1" stroke-dasharray="5,5"/>
+    <text x="500" y="715" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#333333">Key Features</text>
+    <text x="500" y="735" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#333333">• Modular Architecture • Lightweight • Non-invasive • POJO-based</text>
+    <text x="500" y="750" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#333333">• Declarative Programming • Enterprise Integration Ready</text>
+    <text x="500" y="765" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#333333">• Comprehensive Testing Support • Active Community</text>
+  </g>
+  
+  <!-- Arrows showing dependencies -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666666"/>
+    </marker>
+  </defs>
+  
+  <!-- Dependency arrows -->
+  <line x1="500" y1="160" x2="500" y2="280" stroke="#666666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="270" y1="360" x2="270" y2="380" stroke="#666666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="730" y1="360" x2="730" y2="380" stroke="#666666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="500" y1="500" x2="500" y2="520" stroke="#666666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Legend -->
+  <text x="80" y="792" font-family="Arial, sans-serif" font-size="10" fill="#666666">Based on Official Spring Framework Documentation</text>
+</svg>

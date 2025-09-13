@@ -297,6 +297,43 @@ Thymeleaf 是一个现代的服务器端 Java 模板引擎，适用于 Web 和�
 <div th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Name Error</div>
 ```
 
+### thymeleaf和shiro标签整合
+
+1.添加依赖
+
+```xml
+<dependency>
+    <groupId>com.github.theborakompanioni</groupId>
+    <artifactId>thymeleaf-extras-shiro</artifactId>
+    <version>
+ </dependency>
+```
+
+2.在shiro的configuration中配置
+
+```java
+@Bean
+public ShiroDialect shiroDialect() {
+    return new ShiroDialect();
+}
+```
+
+3.在html中加入xmlns
+
+```html
+<html lang\="zh\_CN" xmlns:th\="http://www.thymeleaf.org"
+    xmlns:shiro\="http://www.pollix.at/thymeleaf/shiro"\>
+</html>
+```
+
+4.示例
+
+```html
+<span shiro:authenticated="true">
+      <span>欢迎您：<span th:text="${userInfo.realName}"></span></span>
+</span>
+```
+
 ## 常用工具对象
 
 ### 字符串工具 (#strings)

@@ -26,6 +26,10 @@
   - 有详细的用户评论和讨论
   - 免费开放访问
 
+#### 程序员手册
+
+- **链接**：http://manual.51yip.com/
+
 ### 🌍 国际优质资源
 
 #### 3. Oracle官方Java教程
@@ -54,6 +58,16 @@
   - 详细的算法和数据结构实现
   - 面试常见问题解析
   - 最佳实践和性能优化
+
+#### `coddy`在线练习程序
+
+- **链接**：https://coddy.tech/journeys/python/fundamentals
+
+
+### 性能资源社区
+
+- **链接**：https://heapdump.cn/
+
 
 ## 🛠️ 开发工具推荐
 

@@ -465,6 +465,34 @@ public class DateCalculationUtils {
 }
 ```
 
+## 常见问题
+
+### 解决redis序列化java8 LocalDateTime错误的问题
+
+LocalDateTime属性加上注解
+
+```java
+public class Demo {
+    private Long id;
+    private String name;
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
+    private LocalDateTime time;
+    ......
+}
+```
+
+redis再次存入之后结构
+
+```json
+{
+  "@class": "com.karmay3d.Demo",
+  "id": 10000000001,
+  "name": "测试序列化",
+  "time": [2017,8,15,14,57,37,525000000]
+}
+```
+
 ## 总结
 
 Java 8的日期时间API提供了强大而灵活的功能来处理各种日期时间需求。主要优势包括：

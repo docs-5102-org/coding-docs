@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日志框架关系图</title>
+    <style>
+        body {
+            font-family: 'Arial', 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 15px;
+        }
+        
+        .diagram {
+            width: 100%;
+            height: 600px;
+            position: relative;
+            background: #f8f9ff;
+            border-radius: 10px;
+            border: 2px solid #e1e5f0;
+        }
+        
+        .framework-box {
+            position: absolute;
+            width: 120px;
+            height: 60px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .framework-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+        }
+        
+        .facade {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .implementation {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+        
+        .bridge {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+            width: 140px;
+            height: 40px;
+            font-size: 12px;
+        }
+        
+        .special {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            color: #333;
+        }
+        
+        /* 框架位置 */
+        .log4j { top: 20px; left: 50px; }
+        .jul { top: 20px; left: 200px; }
+        .log4j2 { top: 20px; left: 350px; }
+        .jcl { top: 20px; left: 500px; }
+        .logback { top: 20px; left: 650px; }
+        .slf4j { top: 20px; left: 800px; }
+        
+        .app-log-1 { top: 400px; left: 50px; }
+        .app-log-2 { top: 400px; left: 200px; }
+        .app-log-3 { top: 400px; left: 350px; }
+        .app-log-4 { top: 400px; left: 500px; }
+        .app-log-5 { top: 400px; left: 650px; }
+        .app-log-6 { top: 400px; left: 800px; }
+        
+        .bridge-jcl { top: 180px; left: 480px; }
+        .bridge-slf4j { top: 240px; left: 730px; }
+        
+        /* 连接线 */
+        .connection {
+            position: absolute;
+            background: #333;
+            z-index: 1;
+        }
+        
+        .vertical {
+            width: 2px;
+        }
+        
+        .horizontal {
+            height: 2px;
+        }
+        
+        /* 具体连接线位置 */
+        .line-1 { top: 80px; left: 109px; height: 320px; }
+        .line-2 { top: 80px; left: 259px; height: 320px; }
+        .line-3 { top: 80px; left: 409px; height: 320px; }
+        .line-4 { top: 80px; left: 559px; height: 140px; }
+        .line-5 { top: 80px; left: 709px; height: 160px; }
+        .line-6 { top: 80px; left: 859px; height: 320px; }
+        
+        .line-h1 { top: 240px; left: 730px; width: 129px; }
+        .line-h2 { top: 280px; left: 730px; width: 29px; }
+        
+        /* 箭头 */
+        .arrow {
+            position: absolute;
+            width: 0;
+            height: 0;
+            z-index: 2;
+        }
+        
+        .arrow-down {
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid #333;
+        }
+        
+        .arrow-right {
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-left: 8px solid #333;
+        }
+        
+        .arrow-1 { top: 392px; left: 103px; }
+        .arrow-2 { top: 392px; left: 253px; }
+        .arrow-3 { top: 392px; left: 403px; }
+        .arrow-4 { top: 392px; left: 553px; }
+        .arrow-5 { top: 392px; left: 703px; }
+        .arrow-6 { top: 392px; left: 853px; }
+        .arrow-7 { top: 234px; left: 851px; }
+        .arrow-8 { top: 274px; left: 851px; }
+        
+        /* 标签 */
+        .label {
+            position: absolute;
+            font-size: 12px;
+            color: #666;
+            background: rgba(255,255,255,0.9);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .label-bridge { top: 140px; left: 480px; }
+        .label-impl { top: 300px; left: 730px; }
+        
+        /* 图例 */
+        .legend {
+            position: absolute;
+            top: 480px;
+            left: 20px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+        
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">Java 日志框架关系图</div>
+        
+        <div class="diagram">
+            <!-- 日志框架 -->
+            <div class="framework-box implementation log4j">log4j</div>
+            <div class="framework-box implementation jul">jul<br><span style="font-size: 10px;">java util<br>logging</span></div>
+            <div class="framework-box implementation log4j2">log4j2</div>
+            <div class="framework-box facade jcl">jcl<br><span style="font-size: 10px;">commons<br>logging</span></div>
+            <div class="framework-box implementation logback">logback<br>jul</div>
+            <div class="framework-box facade slf4j">slf4j</div>
+            
+            <!-- 桥接器 -->
+            <div class="framework-box bridge bridge-jcl">适配器或桥接器<br>jcl桥接具体的<br>log实现技术</div>
+            <div class="framework-box bridge bridge-slf4j">适配器或桥接器<br>的具体实现</div>
+            
+            <!-- 应用层 -->
+            <div class="framework-box special app-log-1">记录log</div>
+            <div class="framework-box special app-log-2">记录log</div>
+            <div class="framework-box special app-log-3">记录log</div>
+            <div class="framework-box special app-log-4">记录log</div>
+            <div class="framework-box special app-log-5">记录log</div>
+            <div class="framework-box special app-log-6">记录log</div>
+            
+            <!-- 连接线 -->
+            <div class="connection vertical line-1"></div>
+            <div class="connection vertical line-2"></div>
+            <div class="connection vertical line-3"></div>
+            <div class="connection vertical line-4"></div>
+            <div class="connection vertical line-5"></div>
+            <div class="connection vertical line-6"></div>
+            
+            <div class="connection horizontal line-h1"></div>
+            <div class="connection horizontal line-h2"></div>
+            
+            <!-- 箭头 -->
+            <div class="arrow arrow-down arrow-1"></div>
+            <div class="arrow arrow-down arrow-2"></div>
+            <div class="arrow arrow-down arrow-3"></div>
+            <div class="arrow arrow-down arrow-4"></div>
+            <div class="arrow arrow-down arrow-5"></div>
+            <div class="arrow arrow-down arrow-6"></div>
+            <div class="arrow arrow-down arrow-7"></div>
+            <div class="arrow arrow-down arrow-8"></div>
+            
+            <!-- 标签 -->
+            <div class="label label-bridge">统一抽象</div>
+            <div class="label label-impl">slf4j-jdk14<br>slf4j-log4j12<br>slf4j-jcl<br>logback-classic</div>
+            
+            <!-- 图例 -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-box facade"></div>
+                    <span>日志门面</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box implementation"></div>
+                    <span>日志实现</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box bridge"></div>
+                    <span>桥接适配器</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box special"></div>
+                    <span>应用层</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 说明文字 -->
+        <div style="margin-top: 20px; padding: 15px; background: #f8f9ff; border-radius: 8px; border-left: 4px solid #667eea;">
+            <h3 style="margin: 0 0 10px 0; color: #333;">架构说明：</h3>
+            <ul style="margin: 0; padding-left: 20px; color: #666;">
+                <li><strong>日志门面（Facade）</strong>：JCL、SLF4J - 提供统一的日志抽象接口</li>
+                <li><strong>日志实现</strong>：Log4j、JUL、Log4j2、Logback - 具体的日志记录实现</li>
+                <li><strong>桥接适配器</strong>：连接日志门面和具体实现的桥梁</li>
+                <li><strong>应用层</strong>：业务代码通过日志门面记录日志，底层自动适配到具体实现</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

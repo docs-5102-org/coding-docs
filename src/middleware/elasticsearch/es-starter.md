@@ -1,5 +1,5 @@
 ---
-title: Elasticsearch 完整入门教程
+title: 入门教程
 category:
   - 中间件
 tag:
@@ -7,7 +7,7 @@ tag:
   - es
 ---
 
-# Elasticsearch 完整入门教程
+# Elasticsearch 入门教程
 
 ## 目录
 1. [Elasticsearch 简介](#elasticsearch-简介)

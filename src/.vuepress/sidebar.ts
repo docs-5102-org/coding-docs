@@ -4,12 +4,57 @@ export default sidebar({
   "/": [
     "intro",
   ],
+  "/article/": false, // 隐藏侧边栏
+  "/php/":[
+    {
+      text: "入门教程",
+      link: "intro",
+    },
+    {
+      text: "PHP扩展插件配置教程",
+      link: "php-extend",
+    },
+    {
+      text: "PHP Nginx配置教程",
+      link: "php-nginx-conf",
+    },
+    {
+      text: "PHP 本地开发环境运行配置",
+      link: "php-env",
+    },
+    {
+      text: "PHP 常见问题",
+      link: "php-problem",
+    },
+    {
+      text: "Wordpress 教程",
+      link: "wordpress-starter",
+    }
+  ],
+  "/python/": [
+    "intro",
+    "env",
+    "django",
+    "pyinstaller",
+    "qt",
+    "problem",
+    "podt"
+  ],
+  "/api-design/":[
+    {
+      text: "RESTful API 设计",
+      link: "restful-api",
+    },
+    {
+      text: "为什么 APP 要用token而不用session认证？",
+      link: "/api-design/auth/app-token-vs-session",
+    }
+  ],
   // Java基础知识
   "/java/":[
     {
-      text: "Java 基础教程",
+      text: "Java 教程资料",
       link: "intro",
-
     },
     {
       text: "Java 模版引擎", // 分组
@@ -73,12 +118,28 @@ export default sidebar({
           ]
         },
         {
-          text: "Spring MVC",
+          text: "Spring",
           icon: "puzzle-piece",
           collapsible: true,
-          prefix: '/java/spring-mvc/',  // 嵌套子文件夹
+          prefix: '/java/spring/',  // 嵌套子文件夹
           children: [
+            "spring-framework-architecture",
+            "spring-annotation",
+            "spring-aop",
+            "spring-applicationcontextaware",
+            "spring-applicationtext",
+            "spring-bean-scope",
+            "spring-distributed-transaction",
+            "spring-initializingbean",
+            "spring-interceptor",
+            "spring-jsp-tag",
+            "spring-loadxml",
             "spring-mvc-starter",
+            "spring-mvc-web",
+            "spring-servletcontextaware",
+            "spring-threadlocal",
+            "spring-transaction",
+            "spring-webapplicationcontext"
           ]
         },
         {
@@ -89,7 +150,131 @@ export default sidebar({
           children: [
             "spring-web-flux",
           ]
-        }
+        },
+        {
+          text: "Spring Boot",
+          icon: "puzzle-piece",
+          collapsible: true,
+          prefix: '/java/spring-boot/',  // 嵌套子文件夹
+          children: [
+            "spring-boot-reference-manual",
+            "spring-boot-version-intro",
+            "spring-boot-startup",
+            "spring-boot-banner",
+            "spring-boot-runner",
+            {
+              text: "基础配置",
+              collapsible: true,
+              children: [
+                "spring-boot-multiple-config",
+                "spring-boot-config-ssl",
+                "spring-boot-environmentaware",
+                "spring-boot-servletInitializer",
+                "spring-boot-deploy-war",
+                "spring-boot-multiple-module"
+              ]
+            },
+            {
+              text: "数据访问",
+              collapsible: true,
+              children: [
+                "spring-boot-hikaricp",
+                "spring-boot-h2",
+                "spring-boot-redis",
+                "spring-boot-redis-timout",
+                "spring-boot-redis-session",
+                "spring-boot-redisearch",
+                "spring-boot-multiple-datasource",
+                "spring-boot-multiple-datasource-2",
+                "spring-boot-shardingsphere"
+              ]
+            },
+            {
+              text: "Web开发",
+              collapsible: true,
+              children: [
+                "spring-boot-cors",
+                "spring-boot-view-jsp",
+                "spring-boot-multipartfile",
+                "spring-boot-jsonview",
+                "spring-boot-jackson",
+                "spring-boot-swagger-springdoc",
+                "spring-boot-sse",
+                "spring-boot-netty-socketio"
+              ]
+            },
+            {
+              text: "安全认证",
+              collapsible: true,
+              children: [
+                "spring-boot-login-verify",
+                "spring-boot-prevent-duplicate-requests",
+                "spring-boot-api-sign",
+                "spring-security-oauth2",
+                "spring-boot-shiro-transactional"
+              ]
+            },
+            {
+              text: "日志监控",
+              collapsible: true,
+              children: [
+                "spring-boot-log4j",
+                "spring-boot-logback",
+                "spring-boot-monitor"
+              ]
+            },
+            {
+              text: "中间件集成",
+              collapsible: true,
+              children: [
+                "spring-boot-dubbo",
+                "spring-boot-kafka",
+                "spring-boot-quartz"
+              ]
+            },
+            {
+              text: "缓存应用",
+              collapsible: true,
+              children: [
+                "spring-boot-cache-annotation",
+                "spring-boot-pool"
+              ]
+            },
+            {
+              text: "其他",
+              collapsible: true,
+              children: [
+                "spring-boot-2.7.x-upgrade",
+                "spring-boot-hmrvh",
+                "spring-boot-problem"
+              ]
+            }
+          ]
+        },
+        {
+          text: "Spring Cloud",
+          icon: "puzzle-piece",
+          collapsible: true,
+          prefix: '/java/spring-cloud/',  // 嵌套子文件夹
+          children: [
+            "spring-cloud-starter",
+            "spring-cloud-versions",
+          ]
+        },
+      ]  
+    },
+    {
+      text: "Java 安全认证框架", // 分组
+      children: [
+        {
+          text: "Java Apache Shiro",
+          icon: "puzzle-piece",
+          collapsible: true,
+          prefix: '/java/security-framework/apache-shiro',  // 嵌套子文件夹
+          children: [
+            "shiro-starter"
+          ],
+        },
       ]  
     },
     {
@@ -126,11 +311,146 @@ export default sidebar({
           prefix: '/java/mybatis/',  // 嵌套子文件夹
           children: [
             "mybatis-starter",
+            "mybatis-result",
+            "mybatis-select",
+            "mybatis-where",
+            "mybatis-config",
+            "mybatis-many-insert",
+            "mybatis-tkmapper",
+            "mybatisplus-starter",
+            "mybatisplus-querywrapper",
+            "mybatis-sharejdbc"
           ]
         },
         
       ]  
-    }
+    },
+    {
+      text: "Java JVM", // 分组
+      collapsible: true,
+      prefix: '/java/jvm/',
+      children: [
+        "jar-intro",
+        "intro",
+        "common",
+        "metaspace-size",
+        "stack",
+        "tools",
+        "urlclassloader"
+      ]  
+    },
+    {
+      text: "Java 注解", // 分组
+      collapsible: true,
+      children: [
+        {
+          text: "Java Annotation 教程",
+          icon: "puzzle-piece",
+          link: "/java/annotation/starter"
+        }
+      ]  
+    },
+    {
+      text: "Java 正则表达式", // 分组
+      collapsible: true,
+      children: [
+        {
+          text: "Java 正则表达式基础",
+          icon: "puzzle-piece",
+          link: "/java/regex/starter"
+        },
+        {
+          text: "日期时间正则表达式",
+          icon: "puzzle-piece",
+          link: "/java/regex/datetime-regex"
+        },
+        {
+          text: "普通正则表达式",
+          icon: "puzzle-piece",
+          link: "/java/regex/common-regex"
+        },
+        {
+          text: "捕获组和非贪婪正则表达式",
+          icon: "puzzle-piece",
+          link: "/java/regex/capture-group"
+        },
+        {
+          text: "国际电话号码正则表达式",
+          icon: "puzzle-piece",
+          link: "/java/regex/foreign-phone"
+        },
+        {
+          text: "Notepad中使用正则表达式",
+          icon: "puzzle-piece",
+          link: "/java/regex/notepad-regex"
+        },
+      ]  
+    },
+    {
+      text: "Java 日志", // 分组
+      collapsible: true,
+      children: [
+        { 
+          text: 'Log4j', 
+          link: '/java/log/log4j' 
+        },
+        { 
+          text: 'Logback', 
+          link:'/java/log/logback'
+        },
+        { 
+          text: 'JUL', 
+          link:'/java/log/jul'
+        },
+      ]
+    },
+    {
+      text: "Java 定时任务", // 分组
+      children: [
+        {
+          text: "Quartz 定时任务",
+          icon: "puzzle-piece",
+          collapsible: true,
+          prefix: '/java/schedule/quartz',  // 嵌套子文件夹
+          children: [
+            "quartz-starter",
+            "quartz-springboot"
+          ]
+        },
+      ]  
+    },
+    {
+      text: "Java Web容器", // 分组
+      children: [
+        {
+          text: "resin",
+          icon: "puzzle-piece",
+          collapsible: true,
+          prefix: "/java/resin",
+          children: [
+            "resin-starter",
+            "resin-cluster",
+          ]
+        },
+        {
+          text: "Tomcat",
+          icon: "puzzle-piece",
+          collapsible: true,
+          prefix: "/java/tomcat",
+          children: [
+            "tomcat-install",
+            "tomcat-conf",
+            "tomcat-mysql-mapping",
+            "tomcat-servlet-mapping",
+            "tomcat-deploy",
+            "tomcat-architecture",
+            "tomcat-session-share",
+            "tomcat-cluster",
+            "tomcat-problem"
+          ]
+        }
+      ]  
+    },
   ],
   "/java-article/":[
     {
@@ -493,6 +813,38 @@ export default sidebar({
           icon: "puzzle-piece",
           link: "/java-concurrent/concurrent/multithread-batch"
         },
+        {
+          text: "锁的详解",
+          icon: "puzzle-piece",
+          collapsible: true,
+          children: [
+            {
+              text: "概述",
+              icon: "puzzle-piece",
+              link: "/java-concurrent/concurrent/lock/intro"
+            },
+            {
+              text: "可重入锁的实现原理",
+              icon: "puzzle-piece",
+              link: "/java-concurrent/concurrent/lock/kcrs"
+            }
+          ]
+        },
+        {
+          text: "CountDownLatch应用",
+          icon: "puzzle-piece",
+          link: "/java-concurrent/concurrent/count-down-latch"
+        },
+        {
+          text: "ConcurrentHashMap应用",
+          icon: "puzzle-piece",
+          link: "/java-concurrent/concurrent/concurrent-hashmap"
+        },
+        {
+          text: "参考手册",
+          icon: "puzzle-piece",
+          link: "/java-concurrent/concurrent/reference-manual"
+        }
       ]  
     },
     {
@@ -519,41 +871,91 @@ export default sidebar({
 
   // # 中间件
   "/middleware/": [
-
     {
-      text: "搜索引擎",   // 分组
-      // prefix: "/search/",
+      text: "Elasticsearch",
+      collapsible: true,
+      prefix: '/middleware/elasticsearch/',  // 嵌套子文件夹
       children: [
-        {
-          text: "Elasticsearch",
-          collapsible: true,
-          prefix: '/middleware/elasticsearch/',  // 嵌套子文件夹
-          children: [
-            "es-starter"
-          ]
-        },
-        {
-          text: "Solr",
-          collapsible: true,
-          prefix: '/middleware/solr/',  // 嵌套子文件夹
-          children: [
-            "solr-starter",
-            "solr-install",
-            "solrcloud",
-            "solr-vs-lucene"
-          ]
-        },
-        "lucene"
-      ],
+        "es-starter"
+      ]
+    },
+    {
+      text: "Solr",
+      collapsible: true,
+      prefix: '/middleware/solr/',  // 嵌套子文件夹
+      children: [
+        "solr-starter",
+        "solr-install",
+        "solrcloud",
+        "solr-vs-lucene"
+      ]
+    },
+    {
+      text: "Redis",
+      collapsible: true,
+      prefix: '/middleware/redis/',  // 嵌套子文件夹
+      children: [
+        "redis-install",
+        "redis-conf",
+        "redisson-starter",
+        "redis-search",
+        "redis-stack",
+        "redis-command",
+        "redis-bitmap",
+        "redis-value",
+        "redis-key",
+        "redis-requirepass",
+        "redis-cluster-ms",
+        "redis-jedis",
+        "redis-springboot",
+        "redis-rate-limit",
+        "redis-problem",
+      ]
+    },
+    {
+      text: "Memcached",
+      collapsible: true,
+      prefix: '/middleware/memcached/',  // 嵌套子文件夹
+      children: [
+        "starter",
+        "command",
+        "java-simple",
+        "hashed",
+        "cluster",
+        "magent",
+        "memcached-vs-redis",
+      ]
+    },
+    {
+      text: "RabbitMQ",
+      collapsible: true,
+      prefix: '/middleware/rabbitmq/',  // 嵌套子文件夹
+      children: [
+        "starter",
+        "tutorial",
+      ]
+    },
+    "lucene",
+    {
+      text: "ZooKeeper",
+      collapsible: true,
+      prefix: '/middleware/zookeeper/',  // 嵌套子文件夹
+      children: [
+        "zookeeper-starter",
+      ]
+    },
+    {
+      text: "ShardingSphere",
+      collapsible: true,
+      prefix: '/middleware/sharding-sphere/',  // 嵌套子文件夹
+      children: [
+        "sharding-sphere-starter",
+      ]
     },
   ],
 
   "/tools/": [
-  // {
-  //   text: "工具集",
-  //   link: ""
-  // },
-  {
+    {
       text: "音视频", // 分组
       children: [
         {
@@ -566,6 +968,20 @@ export default sidebar({
             "ffmpeg-problem",
             "ffmpeg-cut",
             "ffmpeg-java"
+          ]
+        },
+      ]  
+    },
+    {
+      text: "图像", // 分组
+      children: [
+        {
+          text: "ImageMagick",
+          icon: "puzzle-piece",
+          collapsible: true,
+          prefix: '/tools/imagemagick/',  // 嵌套子文件夹
+          children: [
+            "imagemagick-starter"
           ]
         },
       ]  
@@ -599,7 +1015,222 @@ export default sidebar({
         },
       ]  
     },
-   
-  ]
-  
+    {
+      text: "富文本工具", // 分组
+      children: [
+        {
+          text: "UEditor",
+          icon: "puzzle-piece",
+          link: "/tools/richtext/ueditor"
+        },
+      ]  
+    },
+
+    {
+      text: "认证授权", // 分组
+      children: [
+        {
+          text: "JustAuth",
+          icon: "puzzle-piece",
+          link: "/tools/auth/justauth"
+        },
+      ]  
+    },
+
+    {
+      text: "依赖管理", // 分组
+      children: [
+        {
+          text: "Maven",
+          icon: "puzzle-piece",
+          collapsible: true,
+          prefix: '/tools/dependency-management/maven',  // 嵌套子文件夹
+          children: [
+            "starter",
+            "command",
+            "scope",
+            "install",
+            "make-plugin",
+            "version",
+            "settings-xml",
+            "repository",
+            "package",
+            "profile",
+            "build",
+            "manifest",
+            "config-old-tomcat",
+            "module-build",
+            "scm",
+            "nexus",
+            "problem"
+          ]
+        },
+        {
+          text: "Gradle",
+          icon: "puzzle-piece",
+          collapsible: true,
+          prefix: '/tools/dependency-management/gradle',  // 嵌套子文件夹
+          children: [
+            "starter",
+          ]
+        },
+      ]  
+    },
+    {
+      text: "开发工具", // 分组
+      children: [
+        {
+          text: "IntelliJ IDEA",
+          icon: "puzzle-piece",
+          collapsible: true,
+          prefix: '/tools/devtools/idea/',  // 嵌套子文件夹
+          children: [
+            "idea-install",
+            "idea-keyword",
+            "idea-template",
+            "idea-debug-jenkins",
+            "idea-maven-run-config",
+            "idea-theme",
+            "idea-svn-config",
+            "idea-problem"
+          ]
+        },
+        {
+          text: "数据库工具",
+          icon: "file-lines",
+          prefix: "/tools/devtools/database/",
+          collapsible: true,
+          // children: "structure",
+          children: [
+            "navicat-starter",
+            "power-designer",
+          ]
+        },
+        {
+          text: "shell工具",
+          icon: "file-lines",
+          prefix: "/tools/devtools/shell/",
+          collapsible: true,
+          // children: "structure",
+          children: [
+            "securefx",
+          ]
+        },
+        {
+          text: "eclipse工具",
+          icon: "file-lines",
+          prefix: "/tools/devtools/eclipse/",
+          collapsible: true,
+          // children: "structure",
+          children: [
+            "eclipse-starter",
+            "myeclipse-starter",
+          ]
+        }
+      ]
+    },
+    {
+      text: "笔记工具", // 分组
+      children: [
+        {
+          text: "Markdown",
+          icon: "puzzle-piece",
+          link: "/tools/notebook/markdown"
+        },
+      ]  
+    },
+    {
+      text: "测试工具", // 分组
+      children: [
+        {
+          text: "Jmeter",
+          icon: "file-lines",
+          prefix: "/tools/jmeter/",
+          collapsible: true,
+          children: [
+            "jmeter-starter",
+            "jmeter-simple",
+          ]
+        },
+      ]  
+    },
+    {
+      text: "其他工具", // 分组
+      children: [
+        {
+          text: "Lombok",
+          icon: "puzzle-piece",
+          link: "/tools/lombok"
+        },
+        {
+          text: "JWT",
+          icon: "puzzle-piece",
+          link: "/tools/jwt"
+        },
+      ]  
+    },
+  ],
+
+  "/store/":[
+    {
+      text: "数据库",
+      icon: "file-lines",
+      prefix: "database/",
+      collapsible: true,
+      children: [
+          {
+            text: "Mysql",
+            icon: "file-lines",
+            prefix: "mysql/",
+            collapsible: true,
+            children: "structure",
+          },
+          {
+            text: "Oracle",
+            icon: "file-lines",
+            prefix: "oracle/",
+            collapsible: true,
+            children: "structure",
+          },
+          {
+            text: "Mongodb",
+            icon: "file-lines",
+            prefix: "Mongodb/",
+            collapsible: true,
+            children: "structure",
+          },
+          {
+            text: "SqlServer",
+            icon: "file-lines",
+            prefix: "sqlserver/",
+            collapsible: true,
+            children: "structure",
+          }
+      ],
+    },
+    {
+      text: "对象存储",
+      icon: "file-lines",
+      collapsible: true,
+      children: [
+          {
+            text: "Minio",
+            icon: "file-lines",
+            prefix: "minio/",
+            collapsible: true,
+            children: "structure",
+          },
+      ],
+    },
+  ],
+  "/game-development/":[
+    {
+      text: "Unity",
+      link: "/game-development/unity/unity-starter",
+    },
+    {
+      text: "Cocos Creator",
+      link: "/game-development/creator/cocos-creator-starter",
+    }
+  ],
 });

@@ -8,7 +8,7 @@ export default defineUserConfig({
   // base: '/', // 如果不使用 GitHub Pages，可以将 base 设置为根路径
 
   lang: "zh-CN",
-  title: "tuonioooo's DevOps Docs",
+  title: "tuonioooo",
   description: "一个高效的运维文档",
   // 在head中添加meta标签，支持访问微信图片
   head: [
