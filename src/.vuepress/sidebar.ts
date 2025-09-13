@@ -452,36 +452,6 @@ export default sidebar({
       ]  
     },
   ],
-  "/java-article/":[
-    {
-      text: "Java编程技巧汇总",
-      collapsible: true,
-      children: [
-        "skill-1",
-        "ttf",
-        "brotli",
-        "javassist",
-        "beanutils",
-        "timeformate",
-        "transcoding",
-        "singleton",
-        "design-mode-1",
-        "design-mode-2",
-        "qrcode",
-        "inner",
-        "byte-string",
-        "fos",
-        "base64",
-        "equals",
-        "rotate",
-        "vcf",
-        "thumbnailator",
-        "high-concurrency-design",
-        "xss",
-        "get-resource"
-      ]
-    },
-  ],
   //# Java 8 专用侧边栏
   "/java8-tutorial/": [
     "",

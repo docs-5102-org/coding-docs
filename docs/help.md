@@ -16,3 +16,6 @@
 * `src/.vuepress/styles/index.scss` [修改局部样式]
 * `src/.vuepress/styles/palette.scss` [修改全局变量设置]
 
+## vercel部署文档
+
+![alt text](./images/image.png)
