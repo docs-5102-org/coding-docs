@@ -18,4 +18,4 @@
 
 ## vercel部署文档
 
-![alt text](./images/image.png)
+![alt text](./deploy)
