@@ -332,7 +332,6 @@ public class FileAction extends ActionSupport {
   src="./docs/STRUTS2学习文档.pdf"  
   width="100%" 
   height="600px" 
-  
 >
   <p>您的浏览器不支持 PDF 预览，请<a href="./docs/STRUTS2学习文档.pdf">下载 PDF</a>。</p>
 </iframe>
