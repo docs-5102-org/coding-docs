@@ -1175,7 +1175,14 @@ export default sidebar({
             prefix: "sqlserver/",
             collapsible: true,
             children: "structure",
-          }
+          },
+          {
+            text: "其他",
+            icon: "file-lines",
+            prefix: "其他/",
+            collapsible: true,
+            children: "structure",
+          },
       ],
     },
     {
