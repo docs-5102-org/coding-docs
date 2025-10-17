@@ -859,6 +859,7 @@ first_100 = [next(gen) for _ in range(100)]
 - [菜鸟教程 Python3](https://www.runoob.com/python3/python3-tutorial.html)
 - [Real Python](https://realpython.com/) - 英文，内容深入
 - [Python Tricks by Dan Bader](https://realpython.com/python-tricks/)
+- [飞书python工具库文档](https://qvctgytc9tu.feishu.cn/docx/DCp9dcqNioAz4SxEE9rczXYpndh?from=from_copylink)
 
 ### 实践项目建议
 1. **命令行工具**：文件管理器、计算器
