@@ -18,6 +18,8 @@ tag:
 
 Markdown 是一种轻量级标记语言，它允许人们使用易读易写的纯文本格式编写文档。Markdown 文件可以转换为 HTML、PDF 等多种格式，广泛应用于技术文档、博客写作、README 文件等场景。
 
+教程：[markdown中文网](https://markdown.p2hp.com/)
+
 ## Front-Matter 介绍
 
 ### 什么是 Front-Matter
