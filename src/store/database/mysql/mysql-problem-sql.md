@@ -1,5 +1,5 @@
 ---
-title: Sql使用常见问题
+title: MySQL 常见问题解决方案
 category:
   - 数据库
 tag:
@@ -7,7 +7,7 @@ tag:
   - SQL
 ---
 
-# MySQL 使用常见问题解决方案
+# MySQL 常见问题解决方案
 
 ## 目录
 
@@ -62,6 +62,76 @@ tag:
 | 8.0 | 引入utf8mb4_0900_ai_ci | 向下兼容性问题 |
 | 5.7 | 默认SQL模式更严格 | 空值和默认值处理 |
 | 5.6 | 引入更多安全特性 | 密码策略变化 |
+
+### 3. `java.sql.SQLNonTransientConnectionException: Public Key Retrieval is not allowed`
+
+这是 **MySQL 连接错误**，通常发生在使用 MySQL 8.0+ 和较新版本的 JDBC 驱动时。
+
+#### 错误原因
+
+MySQL 8.0 默认使用 `caching_sha2_password` 认证插件，客户端首次连接时需要获取服务器的公钥，但默认情况下**不允许自动获取公钥**（出于安全考虑）。
+
+#### 解决方案
+
+##### 方案 1：在 JDBC URL 中允许公钥检索（推荐）
+
+```properties
+# application.properties
+spring.datasource.url=jdbc:mysql://db:3306/your_database?allowPublicKeyRetrieval=true&useSSL=false
+
+# 或者完整配置
+spring.datasource.url=jdbc:mysql://db:3306/your_database?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&characterEncoding=utf8
+```
+
+```yaml
+# application.yml
+spring:
+  datasource:
+    url: jdbc:mysql://db:3306/your_database?allowPublicKeyRetrieval=true&useSSL=false
+    username: root
+    password: your_password
+```
+
+##### 方案 2：使用旧的认证插件
+
+在 MySQL 服务器端修改用户认证方式：
+
+```sql
+-- 方式 1：创建用户时指定
+CREATE USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'your_password';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%';
+FLUSH PRIVILEGES;
+
+-- 方式 2：修改现有用户
+ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'your_password';
+FLUSH PRIVILEGES;
+
+-- 方式 3：修改 localhost 用户
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'your_password';
+FLUSH PRIVILEGES;
+```
+
+##### 方案 3：在 Docker Compose 中配置 MySQL
+
+```yaml
+# MySQL docker-compose.yaml
+services:
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: your_password
+      MYSQL_DATABASE: your_database
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+volumes:
+  mysql-data:
+```
+
+推荐使用**方案 1 + 方案 2**的组合，既简单又安全！
 
 ## 二、数据备份相关问题
 
