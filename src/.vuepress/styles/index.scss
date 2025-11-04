@@ -1,6 +1,9 @@
 // place your custom styles here
 
-
+// 修改桌面端避免左侧侧边栏宽度异常
+.vp-sidebar{
+    padding: 0 !important;
+}
 // 修改左侧菜单link语法的间隙 start
 .vp-sidebar-link {
     padding: 0.25rem 0.9rem !important;

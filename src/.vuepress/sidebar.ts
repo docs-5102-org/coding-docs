@@ -40,6 +40,7 @@ export default sidebar({
     "problem",
     "podt"
   ],
+  "/go/": "structure",
   "/api-design/":[
     {
       text: "RESTful API 设计",

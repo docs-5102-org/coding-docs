@@ -22,6 +22,11 @@ export default navbar([
         text: '🐍 Python',
         link: '/python/'
       },
+      {
+        text: ' Go',
+        icon: 'https://go.dev/blog/go-brand/logos.jpg',
+        link: '/go/'
+      },
     ],
   },
   {

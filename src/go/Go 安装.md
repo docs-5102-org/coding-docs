@@ -1,0 +1,164 @@
+---
+title: Go 安装
+category:
+  - Go
+---
+
+# Go 语言安装教程
+
+Go（又称 Golang）是 Google 开发的开源编程语言。本教程将指导您在不同操作系统上安装 Go。
+
+## 一、Windows 系统安装
+
+### 1. 下载安装包
+- 访问 Go 官网：https://go.dev/dl/
+- 下载适合 Windows 的 `.msi` 安装包（如 `https://go.dev/dl/go1.25.3.windows-amd64.msi`）
+
+### 2. 运行安装程序
+- 双击下载的 `.msi` 文件
+- 按照安装向导提示操作
+- 默认安装路径为 `C:\Program Files\Go`
+
+### 3. 验证安装
+打开命令提示符（cmd）或 PowerShell，输入：
+```bash
+go version
+```
+如果显示 Go 的版本信息，说明安装成功。
+
+## 二、macOS 系统安装
+
+### 方法一：使用安装包
+1. 访问 https://go.dev/dl/
+2. 下载 `.pkg` 文件（如 `go1.21.x.darwin-amd64.pkg`）
+3. 双击运行安装包，按提示完成安装
+
+### 方法二：使用 Homebrew
+```bash
+brew install go
+```
+
+### 验证安装
+打开终端，输入：
+```bash
+# 1. 验证 Go 版本（你已经做过了）
+go version
+
+# 2. 验证 GOPATH（Go 工作目录）
+go env GOPATH
+
+# 3. 验证 GOROOT（Go 安装目录）
+go env GOROOT
+
+# 4. 查看所有 Go 环境变量
+go env
+```
+
+## 三、Linux 系统安装
+
+### 1. 下载压缩包
+```bash
+wget https://go.dev/dl/go1.21.x.linux-amd64.tar.gz
+```
+
+### 2. 解压到指定目录
+```bash
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf go1.21.x.linux-amd64.tar.gz
+```
+
+### 3. 配置环境变量
+编辑 `~/.profile` 或 `~/.bashrc` 文件：
+```bash
+export PATH=$PATH:/usr/local/go/bin
+```
+
+使配置生效：
+```bash
+source ~/.profile
+```
+
+### 4. 验证安装
+```bash
+go version
+```
+
+## 四、配置 Go 工作环境
+
+### 1. 设置 GOPATH（可选）
+Go 1.11+ 版本支持 Go Modules，不强制要求设置 GOPATH。但通常我们不放置到`C盘`, 动态修改工作环境，如下：
+
+**Windows：**
+
+```bash
+setx GOPATH "%USERPROFILE%\go"
+```
+或
+
+直接通过系统的环境变量修改
+
+
+**macOS/Linux：**
+在 `~/.profile` 或 `~/.bashrc` 中添加：
+```bash
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOPATH/bin
+```
+
+### 2. 配置 Go 代理（推荐，国内用户）
+```bash
+go env -w GO111MODULE=on
+go env -w GOPROXY=https://goproxy.cn,direct
+```
+
+### 3. 修改 Go 构建缓存
+
+```bash
+# 永久生效
+go env -w GOCACHE=E:\dev_workspace\go\go-build
+```
+
+
+## 五、测试安装
+
+### 1. 创建测试项目
+```bash
+mkdir hello
+cd hello
+go mod init hello
+```
+
+### 2. 创建 main.go 文件
+```go
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Hello, Go!")
+}
+```
+
+### 3. 运行程序
+```bash
+go run main.go
+```
+
+如果输出 `Hello, Go!`，恭喜您，Go 环境已成功配置！
+
+## 六、常用 Go 命令
+
+- `go version` - 查看 Go 版本
+- `go env` - 查看 Go 环境变量
+- `go run` - 编译并运行 Go 程序
+- `go build` - 编译 Go 程序
+- `go mod init` - 初始化 Go 模块
+- `go get` - 下载并安装包和依赖
+
+## 七、IDE 推荐
+
+- **VS Code** + Go 扩展（推荐）
+- **GoLand**（JetBrains 出品）
+- **Vim/Neovim** + vim-go
+
+安装完成后，您就可以开始 Go 语言的学习之旅了！
