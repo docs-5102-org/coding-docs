@@ -5,6 +5,7 @@ export default sidebar({
     "intro",
   ],
   "/article/": false, // 隐藏侧边栏
+  "/interview/": "structure",
   "/php/":[
     {
       text: "入门教程",

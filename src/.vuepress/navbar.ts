@@ -70,6 +70,10 @@ export default navbar([
         text: '📑 博客文档',
         link: '/article/',
       },
+      {
+        text: '📑 面试文档',
+        link: '/interview/java/基础.md',
+      },
       { text: '🐧 Linux', link: 'https://devops.dzspace.top/linux/' },
       { text: 'Docker', icon: 'skill-icons:docker', link: 'https://github.com/tuonioooo/docker' },
       {

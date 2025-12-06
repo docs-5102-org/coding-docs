@@ -10,6 +10,16 @@
 <iframe src="/html/log.html" width="100%" height="800"></iframe>
 ```
 
+## 插入图片
+
+1. 添加图片 在`src\.vuepress\public\assets` 
+
+2. 在md文档中输入如下内容:
+<img :src="$withBase('/assets/images/high-concurrency-design-1.png')" 
+  alt=""
+  width="800px" 
+  height="auto">
+
 ## 修改样式
 
 * `src/.vuepress/styles/config.scss` [修改主题色]
