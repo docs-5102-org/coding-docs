@@ -875,6 +875,14 @@ SELECT * FROM users WHERE id >= 10 FOR UPDATE;
 
 [详见](../../store/database/mysql/mysql-update-priority.md)
 
+## 什么是Redo Log、Undo Log 工作原理是什么？什么是 MVCC?
+
+[详见](../../store/database/mysql/mysql-redo-undo.md)
+
+## 什么是幻读? MySQL InnoDB 如何通过 MVCC + Next-Key Lock 解决幻读？
+
+[详见](../../store/database/mysql/mysql-mvcc-nextkeylock.md)
+
 ## 参考文档
 
 - Mysql网络搜集优化面试题：https://www.jianshu.com/p/486a514b0ded
