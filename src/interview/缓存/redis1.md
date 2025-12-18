@@ -372,7 +372,7 @@ value = {
 **修复AOF文件方法：**
 
 1. 将现有已经坏损的AOF文件额外拷贝出来一份。
-2. 执行"redis-check-aof --fix <filename>"命令来修复坏损的AOF文件。
+2. 执行`redis-check-aof --fix <filename>`命令来修复坏损的AOF文件。
 3. 用修复后的AOF文件重新启动Redis服务器。
 
 #### 如何选择？
