@@ -393,7 +393,7 @@ mysql> show global status like '%Slow_queries%';
 
 ---
 
-**3. -g <regex> — 正则过滤（不区分大小写）**
+**3. -g <`regex`> — 正则过滤（不区分大小写）**
 
 可以只统计包含某一关键词的 SQL。
 
