@@ -1,3 +1,11 @@
+---
+title: Spring Cloud 与微服务面试题汇总
+category: 分布式
+tag:
+  - Spring Cloud
+date: 2025-12-01
+---
+
 # Spring Cloud 与微服务面试题汇总
 
 ## 1. 什么情况下需要使用分布式事务，有哪些方案？（中等）

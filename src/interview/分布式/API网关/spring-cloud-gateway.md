@@ -97,7 +97,7 @@ Spring Cloud Gateway 作为微服务的入口，需要尽量避免重启，而�
 ### 局部过滤器
 
 常见的局部过滤器如下所示：
-
+```
 | 过滤器工厂 | 作用 | 参数 | 示例 |
 |---|---|---|---|
 | AddRequestHeader | 为原始请求添加Header | Header的名称及值 | - AddRequestHeader=my-request-header,1024,<br>为原始请求添加名为 my-request-header,值为 1024 的请求头 |
@@ -126,6 +126,7 @@ Spring Cloud Gateway 作为微服务的入口，需要尽量避免重启，而�
 | ModifyRequestBody | 在转发请求之前修改原始请求体内容 | 修改后的请求体内容 | |
 | ModifyResponseBody | 修改原始响应体的内容 | 修改后的响应体内容 | |
 | Default | 为所有路由添加过滤器 | 过滤器工厂名称及值 | |
+```
 
 具体怎么用呢？这里有个示例，如果 URL 匹配成功，则去掉 URL 中的 “api”。
 
@@ -198,5 +199,3 @@ public class GlobalErrorWebExceptionHandler implements ErrorWebExceptionHandler 
 - Spring Cloud Gateway 官方文档：<https://cloud.spring.io/spring-cloud-gateway/reference/html/>
 - Creating a custom Spring Cloud Gateway Filter：<https://spring.io/blog/2022/08/26/creating-a-custom-spring-cloud-gateway-filter>
 - 全局异常处理: <https://zhuanlan.zhihu.com/p/347028665>
-
-<!-- @include: @article-footer.snippet.md -->
