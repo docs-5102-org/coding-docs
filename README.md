@@ -33,6 +33,10 @@
 
 `pnpm docs:dev`
 
+## 打包项目
+
+`pnpm docs:build`
+
 ## 关注我们
 
 公众号：程序猿的游戏开源工具密圈
