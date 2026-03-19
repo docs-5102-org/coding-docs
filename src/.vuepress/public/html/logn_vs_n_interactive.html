@@ -1,0 +1,81 @@
+
+<style>
+  .stat-row { display: flex; gap: 12px; margin: 16px 0; }
+  .stat { flex: 1; background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 14px 16px; }
+  .stat-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; }
+  .stat-value { font-size: 22px; font-weight: 500; color: var(--color-text-primary); }
+  .stat-sub { font-size: 12px; color: var(--color-text-tertiary); margin-top: 2px; }
+  .bar-wrap { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+  .bar-label { font-size: 12px; color: var(--color-text-secondary); width: 60px; flex-shrink: 0; }
+  .bar-bg { flex: 1; height: 20px; background: var(--color-background-secondary); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; display: flex; align-items: center; padding-left: 8px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .bar-n { background: #F09595; color: #791F1F; }
+  .bar-logn { background: #9FE1CB; color: #085041; }
+</style>
+
+<div style="padding: 4px 0 0;">
+  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+    <span style="font-size: 13px; color: var(--color-text-secondary); white-space: nowrap;">数据量 n =</span>
+    <input type="range" id="slider" min="1" max="7" value="4" step="1" style="flex: 1;">
+    <span id="n-display" style="font-size: 16px; font-weight: 500; min-width: 80px; color: var(--color-text-primary);">10,000</span>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat">
+      <div class="stat-label">链表查找（O(n)）</div>
+      <div class="stat-value" id="v-n" style="color: #A32D2D;">10,000 步</div>
+      <div class="stat-sub">最坏情况逐个扫描</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">二分查找（O(log n)）</div>
+      <div class="stat-value" id="v-logn" style="color: #0F6E56;">14 步</div>
+      <div class="stat-sub">每次砍掉一半</div>
+    </div>
+  </div>
+
+  <div style="margin: 20px 0 8px;">
+    <div class="bar-wrap">
+      <span class="bar-label">O(n)</span>
+      <div class="bar-bg"><div class="bar-fill bar-n" id="bar-n" style="width: 100%;" id="bn"></div></div>
+    </div>
+    <div class="bar-wrap">
+      <span class="bar-label">O(log n)</span>
+      <div class="bar-bg"><div class="bar-fill bar-logn" id="bar-logn" style="width: 2%;"></div></div>
+    </div>
+  </div>
+
+  <div id="analogy" style="margin-top: 20px; padding: 12px 16px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); font-size: 13px; color: var(--color-text-secondary); line-height: 1.6;"></div>
+</div>
+
+<script>
+const steps = [10, 100, 1000, 10000, 100000, 1000000, 1000000000];
+const labels = ['10', '100', '1,000', '10,000', '100,000', '1,000,000', '10亿'];
+const logVals = [4, 7, 10, 14, 17, 20, 30];
+const analogies = [
+  '在10张纸里找一张：链表翻10次，二分查找最多翻4次，差别不大。',
+  '在一本100页书里找一页：链表逐页翻，二分查找只需问7次「在前半还是后半」。',
+  '在一座1000页的厚书里找内容：链表要翻1000页，二分查找翻10次就够了。就像查字典，你绝对不会从第一页开始逐页翻。',
+  '在一万条数据库记录里找一条：链表要扫描10,000行，二分查找只需14次比较。这就是为什么数据库用树形索引而不是链表。',
+  '在十万条记录里找：链表扫描100,000行，二分查找17次。差距已经是近6000倍。',
+  '在一百万条记录里找：链表扫描1,000,000行，二分查找只需20次。这就是为什么 Google 能在海量数据里瞬间给你结果。',
+  '10亿条记录（几乎是全球人口数量）：链表要扫描十亿次，而二分查找只需30次。三十步走遍十亿！'
+];
+
+const slider = document.getElementById('slider');
+function update() {
+  const i = parseInt(slider.value) - 1;
+  const n = steps[i];
+  const logn = logVals[i];
+  document.getElementById('n-display').textContent = labels[i];
+  document.getElementById('v-n').textContent = labels[i] + ' 步';
+  document.getElementById('v-logn').textContent = logn + ' 步';
+  const pct = Math.max(1, Math.round(logn / n * 100));
+  document.getElementById('bar-n').style.width = '100%';
+  document.getElementById('bar-n').textContent = labels[i] + ' 步';
+  document.getElementById('bar-logn').style.width = Math.max(pct, 1) + '%';
+  document.getElementById('bar-logn').textContent = logn + ' 步';
+  document.getElementById('analogy').textContent = analogies[i];
+}
+slider.addEventListener('input', update);
+update();
+</script>

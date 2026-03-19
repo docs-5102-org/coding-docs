@@ -1,5 +1,5 @@
 ---
-title: Java内存模型（详解）
+title: Netty 常见面试题总结
 category:
   - 面试题
 tag:
@@ -42,6 +42,11 @@ date:
 - 目前应用不够广泛，Netty 也曾尝试使用后放弃
 
 ### 2. 什么是 Netty?
+
+<img :src="$withBase('/assets/images/interview/netty1.png')" 
+  alt="Netty分层架构"
+  width="800px" 
+  height="auto">
 
 Netty 是一个**基于 NIO** 的 client-server 框架，具有以下特点:
 
@@ -90,16 +95,6 @@ Netty 是一个**基于 NIO** 的 client-server 框架，具有以下特点:
 
 ### 6. Netty 的核心组件有哪些?
 
-#### ByteBuf (字节容器)
-
-- Netty 提供的字节容器，内部是一个字节数组
-- 是 Netty 对 Java NIO ByteBuffer 的封装和抽象
-- 使用更简单，功能更强大
-
-**为什么不直接使用 Java NIO 的 ByteBuffer?**
-- ByteBuffer 使用过于复杂和繁琐
-- ByteBuf 提供了更好的 API 设计
-
 #### Bootstrap 和 ServerBootstrap (启动引导类)
 
 **Bootstrap (客户端启动类)**
@@ -125,32 +120,104 @@ Netty 是一个**基于 NIO** 的 client-server 框架，具有以下特点:
 
 #### EventLoop (事件循环)
 
-**EventLoop 的作用:**
-- 负责监听网络事件并调用事件处理器进行相关 I/O 操作
-- 是 Netty 中最核心的概念
+<img :src="$withBase('/assets/images/interview/eventloopgroup.png')" 
+  alt="eventloopgroup"
+  width="800px" 
+  height="auto">
 
-**EventLoop 与 Channel 的关系:**
-- Channel 负责网络操作抽象
-- EventLoop 负责处理注册到其上的 Channel 的 I/O 操作
-- 两者配合进行 I/O 操作
+**EventLoop**
 
-**EventLoopGroup 与 EventLoop 的关系:**
-- EventLoopGroup 包含多个 EventLoop
-- 管理所有 EventLoop 的生命周期
-- EventLoop 处理的 I/O 事件都在其专有的 Thread 上被处理
-- EventLoop 和 Thread 属于 1:1 关系，保证线程安全
+EventLoop 是 Netty 的核心驱动单元，本质是一个**单线程的事件循环**：不断轮询注册在其上的 Channel，有 I/O 事件就处理，没有就执行任务队列里的普通任务或定时任务。
 
-#### ChannelHandler (消息处理器) 和 ChannelPipeline
+职责上分三块：
 
-**ChannelHandler:**
-- 用于处理 I/O 事件或拦截 I/O 操作
-- 可以自定义业务处理逻辑
+- **I/O 事件处理**：通过 `Selector` 监听读写就绪事件，触发 Pipeline 中对应的 Handler
+- **普通任务**：通过 `execute(Runnable)` 提交的任务，放入 `taskQueue` 异步执行
+- **定时任务**：通过 `schedule()` 提交的延迟/周期任务，放入 `scheduledTaskQueue` 按时执行
 
-**ChannelPipeline:**
-- ChannelHandler 对象链表
-- 每个 Channel 创建时自动分配一个 ChannelPipeline
-- 一个 Pipeline 上可以有多个 ChannelHandler
-- 数据或事件可能被多个 Handler 处理
+**与 Channel 的绑定关系**
+
+Channel 在注册时会被分配给某个 EventLoop，此后该 Channel 的所有 I/O 操作**终身只在这一个 EventLoop 的线程上执行**，不会漂移到其他线程。这是 Netty 线程安全的根本保证——相同 Channel 的操作天然串行，无需加锁。
+
+**EventLoopGroup**
+
+EventLoopGroup 是 EventLoop 的容器，负责管理一组 EventLoop 的生命周期，并在新 Channel 注册时按策略（默认轮询）将其分配给某个 EventLoop。
+
+```
+EventLoopGroup
+├── EventLoop-0  →  Thread-0  →  Channel A、B
+├── EventLoop-1  →  Thread-1  →  Channel C、D
+└── EventLoop-N  →  Thread-N  →  Channel E、F
+```
+
+**面试要点**：当业务代码在 Handler 中执行耗时操作（如数据库查询）时，会阻塞 EventLoop 线程，导致该 EventLoop 上所有 Channel 的 I/O 都被拖慢。正确做法是将耗时操作提交到独立的业务线程池执行, 代码如下：
+
+```java
+public class MyHandler extends ChannelInboundHandlerAdapter {
+    // 独立的业务线程池，与 EventLoop 无关
+    private static final ExecutorService bizThreadPool = 
+        Executors.newFixedThreadPool(16);
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        bizThreadPool.submit(() -> {
+            // 耗时操作在业务线程池里跑，不占用 EventLoop 线程
+            Object result = doHeavyWork(msg);
+            // 结果写回时通过 ctx.writeAndFlush()
+            // Netty 内部会将写操作转交回 EventLoop 线程执行，线程安全
+            ctx.writeAndFlush(result);
+        });
+    }
+}
+```
+
+所以完整的链路是：EventLoop 线程负责 I/O 收发 → 耗时计算交给业务线程池 → 写回结果时 ctx.writeAndFlush() 自动切回 EventLoop 线程完成实际写出。EventLoop 全程只做轻量的 I/O 调度，不碰慢操作。
+
+#### Channel
+
+<img :src="$withBase('/assets/images/interview/channel.png')" 
+  alt="channel"
+  width="800px" 
+  height="auto">
+
+Channel 内部持有 Pipeline、EventLoop（仅是引用关系，一个EventLoop包含多个Channel）、Unsafe、Config 四大成员，它本身是状态机，从 REGISTERED → ACTIVE → INACTIVE → UNREGISTERED 单向流转。考点是"Channel 的 isActive() 什么时候为 true"——连接建立后，channelActive() 触发，此时才是 true。
+
+
+#### ChannelHandler (消息拦截处理器) 和 ChannelPipeline
+
+<img :src="$withBase('/assets/images/interview/channelpipeline.png')" 
+  alt="channel"
+  width="800px" 
+  height="auto">
+
+**ChannelHandler**
+
+Pipeline 中每个节点的处理单元，负责对经过的 I/O 事件或操作进行处理、转换或拦截。分为两个子接口：
+
+- `ChannelInboundHandler`：处理入站事件，如连接建立 `channelActive()`、数据读取 `channelRead()`、连接断开 `channelInactive()` 等
+- `ChannelOutboundHandler`：处理出站操作，如 `write()`、`flush()`、`connect()` 等
+
+实际开发中通常不直接实现接口，而是继承适配器类：
+
+- `ChannelInboundHandlerAdapter`：重写所需方法即可，未重写的方法默认调用 `ctx.fireXxx()` 继续向下传播
+- `SimpleChannelInboundHandler<T>`：在上面的基础上自动处理 ByteBuf 的释放，避免内存泄漏，**推荐在只需要处理特定类型消息时使用**
+
+> **注意**：`@ChannelHandler.Sharable` 注解标记的 Handler 可以在多个 Channel 间共享同一个实例；未标记的 Handler 每个 Channel 必须创建独立实例，否则会有线程安全问题。
+
+**ChannelPipeline**
+
+本质是一条 `ChannelHandlerContext` 的**双向链表**，而不仅仅是"Handler 列表"——每个 Handler 被加入 Pipeline 时，都会被包装成一个 `ChannelHandlerContext` 节点挂入链表，节点持有前后指针以及对 Channel、EventLoop 的引用。
+
+每个 Channel 创建时自动分配一个专属的 Pipeline，链表固定以 `HeadContext` 开头、`TailContext` 结尾，用户自定义的 Handler 插入其间。
+
+**事件传播机制：**
+
+- Inbound 事件（如数据读取）：从 `Head → Tail` 方向传播，只经过 `ChannelInboundHandler`
+- Outbound 事件（如数据写出）：从 `Tail → Head` 方向传播，只经过 `ChannelOutboundHandler`
+
+传播并非遍历所有节点——调用 `ctx.fireChannelRead()` 时，Netty 会沿链表直接跳到下一个 `InboundHandler`，与当前事件类型不匹配的 Handler 节点会被跳过，效率很高。
+
+> **注意**：如果某个 Handler 处理完事件后不调用 `ctx.fireChannelRead()`，事件在此截断，后续 Handler 将不再收到通知。这是自定义 Handler 时最常见的 bug 来源之一。
 
 **处理流程:**
 ```
@@ -163,6 +230,21 @@ Netty 是一个**基于 NIO** 的 client-server 框架，具有以下特点:
 - 不能立刻得到操作是否执行成功
 - 可以通过 `addListener()` 方法注册一个 `ChannelFutureListener`
 - 当操作执行成功或失败时，监听器会自动触发返回结果
+
+
+#### ByteBuf (字节容器)
+
+<img :src="$withBase('/assets/images/interview/bytebuf.png')" 
+  alt="bytebuf"
+  width="800px" 
+  height="auto">
+
+ByteBuf是Netty 提供的字节容器，内部是一个字节数组，对 Java NIO ByteBuffer 进行了封装和抽象，使用更简单，功能更强大
+
+**为什么不直接使用 Java NIO 的 ByteBuffer?**
+- ByteBuffer 使用过于复杂和繁琐
+- ByteBuf 的最大特点是用 readerIndex 和 writerIndex 两个独立指针代替了 NIO ByteBuffer 的 flip() 翻转机制，读写互不干扰，API 更直觉。
+
 
 ### 7. NioEventLoopGroup 默认的构造函数会启动多少线程?
 
@@ -358,6 +440,11 @@ try {
 ## 高级特性
 
 ### 11. 什么是 TCP 粘包/拆包? 如何解决?
+
+<img :src="$withBase('/assets/images/interview/tcpzb.png')" 
+  alt="tcp粘包/拆包"
+  width="800px" 
+  height="auto">
 
 #### 什么是粘包/拆包?
 

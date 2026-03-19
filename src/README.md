@@ -48,7 +48,7 @@ projects:
     desc: AI相关技术文档
     link: https://notion.dzspace.top
 
-footer: 公众号：程序猿的游戏开源工具密圈
+footer: 公众号：DFANS科技工具站
 
 ---
 

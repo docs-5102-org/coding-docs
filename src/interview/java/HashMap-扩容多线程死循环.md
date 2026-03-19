@@ -253,28 +253,50 @@ T1: 线程1启动
     ⏸️ 线程1暂停 (CPU调度)
 
 ───────────────────────────────────────────────────────────
-T2: 线程2完整执行
-    转移A: newTable[1] = A → null
-    转移B: newTable[1] = B → A → null  (头插法)
-    ✓ 线程2完成
-    
-    ⚠️ 旧数组也变了: B → A → null
+T2: 线程2完整执行扩容（头插法）
+
+【循环1】e = A，处理节点 A
+    next        = e.next = A.next = B      (保存下一个节点)
+    A.next      = newTable[1] = null       (新桶为空，头插后 A 是尾节点)
+    newTable[1] = A → null
+    e           = next = B                 (推进到下一个节点)
+
+【循环2】e = B，处理节点 B
+    next        = e.next = B.next = null   (B 是最后一个，next 为 null)
+    B.next      = newTable[1] = A          (头插，B 插到 A 前面)
+    newTable[1] = B → A → null
+    e           = next = null              (推进到 null，循环结束)
+
+✓ 线程2完成
+
+此时堆内存状态：
+    A.next = null  →  ⚠️ 原来是 B，现已变为 null
+    B.next = A     →  ⚠️ 原来是 null，现已变为 A
 
 ───────────────────────────────────────────────────────────
-T3: 线程1恢复
-    循环1: 转移A
-      newTable[1] = A → null
-      e = next (B)
-    
-    循环2: 转移B  
-      next = B.next = A  (⚠️ 线程2改的)
-      B.next = A
-      newTable[1] = B → A
-      e = next (A)  ⚠️ 又回到A
-    
-    循环3: 再次转移A
-      A.next = B
-      💥 成环: A ⇄ B
+T3: 线程1恢复，用旧局部变量继续执行
+───────────────────────────────────────────────────────────
+【循环1】e = A，处理节点 A
+    next        = e.next = A.next = null   (读堆内存，线程2已改为 null)
+    A.next      = newTable[1] = null       (新桶为空，A 是第一个插入)
+    newTable[1] = A → null
+    e           = T1保存的旧next = B       (用 T1 挂起前存的局部变量推进，不是本轮 next)
+
+【循环2】e = B，处理节点 B
+    next        = e.next = B.next = A      ⚠️ 线程2把 B.next 改成了 A！正常应为 null
+    B.next      = newTable[1] = A          (头插，B 插到 A 前面)
+    newTable[1] = B → A
+    e           = next = A                 ⚠️ e 又回到了 A，本应到 null
+
+【循环3】e = A，再次处理节点 A（while e != null 条件成立）
+    next        = e.next = A.next = null   (读堆内存)
+    A.next      = newTable[1] = B          (头插，A 插到 B 前面) 💥 环在这里闭合
+    newTable[1] = A → B
+    e           = next = null              ← transfer() 正常退出
+
+💥 环已闭合：A.next = B，B.next = A
+   死循环发生在后续 get() 遍历时：
+   e = A → B → A → B → 永远到不了 null，CPU 100%
 
 ───────────────────────────────────────────────────────────
 结果: 死循环,CPU 100%
@@ -314,6 +336,7 @@ do {
 - 转移B: A → B → null
 
 ✓ 顺序保持,不会成环
+
 ```
 
 ### 但是！仍然不安全
@@ -327,7 +350,34 @@ do {
 - 数据覆盖
 - size计算错误
 
-结论: JDK 1.8修复了死循环,但HashMap仍不是线程安全的!
+结论: JDK 1.8 修复了死循环,但HashMap仍不是线程安全的!
+
+```
+
+
+时序图
+
+```
+───────────────────────────────────────────────────────────
+初始状态: newTable[3] = null
+
+线程1: put(key1, value1)  hash 落在桶3
+线程2: put(key2, value2)  hash 同样落在桶3
+
+───────────────────────────────────────────────────────────
+T1: 线程1检查桶3
+    if (table[3] == null)   ← 条件成立，准备 CAS 插入
+    ⏸️ 线程1挂起
+
+T2: 线程2检查桶3
+    if (table[3] == null)   ← 条件同样成立（线程1还没写进去）
+    table[3] = Node(key2)   ← 线程2写入成功
+
+T3: 线程1恢复
+    table[3] = Node(key1)   ← 线程1不知道线程2已经写了，直接覆盖
+    
+💥 结果: key2 丢失，size 却 +2
+───────────────────────────────────────────────────────────
 ```
 
 ---
