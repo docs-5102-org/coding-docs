@@ -173,6 +173,11 @@ date:
 
 内连接是把匹配的关联数据显示出来；左连接是左边的表全部显示出来，右边的表显示出符合条件的数据；右连接正好相反。
 
+<img :src="$withBase('/assets/images/interview/mysql/join.png')" 
+  alt="连接"
+  width="800px" 
+  height="auto">
+
 ## MySQL 索引是怎么实现的？
 
 索引是满足某种特定查找算法的数据结构，而这些数据结构会以某种方式指向数据，从而实现高效查找数据。
