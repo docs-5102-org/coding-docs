@@ -1,5 +1,5 @@
 ---
-title: MySQL InnoDB 如何通过 MVCC + Next-Key Lock 解决幻读
+title: MySQL InnoDB 如何通过 MVCC + Next-Key Lock 解决幻读 ⭐️⭐️⭐️⭐️⭐️
 category:
   - 数据库
 tag:

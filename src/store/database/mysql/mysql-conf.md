@@ -177,7 +177,7 @@ default-storage-engine=INNODB
 | 外键支持 | ✓ | ✗ | ✗ |
 | 行级锁 | ✓ | ✗ | ✓ |
 | 崩溃恢复 | ✓ | ✗ | ✗ |
-| MVCC | ✓ | ✗ | ✗ |
+| MVCC（Multi-Version Concurrency Control） | ✓ | ✗ | ✗ |
 
 ### 认证插件配置
 
@@ -682,6 +682,11 @@ secure-file-priv=/var/lib/mysql-files/
 ssl-ca=/etc/mysql/ssl/ca-cert.pem
 ssl-cert=/etc/mysql/ssl/server-cert.pem
 ssl-key=/etc/mysql/ssl/server-key.pem
+
+
+# 0 表示大小写敏感；1 表示忽略大小写，建表时大写转小写；2 表示忽略大小写，建表时大小写保持原样
+# Linux 不支持值 2，设置后会被强制改为 0。
+lower_case_table_names = 1
 
 [mysql]
 default-character-set=utf8mb4

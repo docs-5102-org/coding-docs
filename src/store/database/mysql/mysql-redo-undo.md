@@ -1,5 +1,5 @@
 ---
-title: MySQL Redo Log 与 Undo Log 详解
+title: MySQL Redo Log 与 Undo Log 详解 ⭐️⭐️⭐️⭐️⭐️
 category:
   - 数据库
 tag:
@@ -26,15 +26,17 @@ Redo Log 是 InnoDB 存储引擎特有的日志，用于保证事务的**持久�
 ### 1.3 工作流程
 
 ```
-事务修改数据 
+事务修改数据
     ↓
 1. 修改 Buffer Pool 中的数据页（内存操作）
     ↓
-2. 生成 Redo Log 记录，写入 Redo Log Buffer（内存）
+2. 生成 Redo Log，写入 Redo Log Buffer（内存）
     ↓
-3. 在特定时机刷盘到 Redo Log File（磁盘）
+3. 事务提交时，Redo Log Buffer 刷盘到 Redo Log File（磁盘）  ← 补充
     ↓
-4. 后台线程异步将脏页刷入数据文件
+4. 在特定时机刷盘到 Redo Log File（checkpoint 等触发）
+    ↓
+5. 后台线程异步将脏页刷入数据文件
 ```
 
 ### 1.4 刷盘时机

@@ -283,6 +283,112 @@ SET optimizer_switch = 'index_condition_pushdown=off';
 SET optimizer_switch = 'index_condition_pushdown=on';
 ```
 
+:::tip
+
+这是一个经典的**最左前缀原则**问题。
+
+---
+
+#### 示例
+
+联合索引 `(age, name)` 在 B+树中的存储是：**先按 age 排序，age 相同时再按 name 排序**。
+
+当 age 条件是**范围查询**（`>`、`<`、`BETWEEN`）时，name 在索引中就**不连续**了。
+
+```
+索引中的数据排列：
+age=18, name=张三
+age=18, name=李四
+age=21, name=王五   ← age > 20 从这里开始
+age=21, name=赵六
+age=25, name=张八   ← 这个 name 也满足 '张%'，但和上面不相邻
+age=25, name=陈九
+age=30, name=张一
+```
+
+age > 20 的结果散落在多个不连续区间里，**name 在这些区间内并不是全局有序的**，所以存储引擎无法用 name 索引直接跳过不满足的记录。
+
+---
+
+**那 ICP 干了什么？**
+
+ICP 并不是让 name **走索引查找**，而是在**遍历索引叶子节点时**，顺带把 `name LIKE '张%'` 这个条件在索引层判断掉，不满足就不回表。
+
+```
+没有 ICP：
+  遍历 age > 20 的索引条目 → 全部回表 → Server层再过滤 name
+
+有了 ICP：
+  遍历 age > 20 的索引条目 → 索引层判断 name → 不满足直接跳过 → 只对满足的回表
+```
+
+本质区别：**name 参与的是"过滤"，不是"查找"**。
+
+---
+
+**如果想让 name 也参与索引查找**
+
+把 age 的条件改成等值查询就行：
+
+```sql
+-- age 用等值，name 才能走索引
+SELECT * FROM user WHERE age = 21 AND name LIKE '张%';
+```
+
+此时 age 定位到精确区间，name 在该区间内是有序的，可以直接用索引范围扫描，效率最高。
+
+---
+
+
+**age = 21 时，name 是局部有序的**
+
+```
+索引存储：
+age=18, name=李四
+age=18, name=张三
+age=21, name=张一   ← age=21 的区间开始
+age=21, name=张八   ← name 在这个区间内是有序的
+age=21, name=王五
+age=21, name=赵六   ← age=21 的区间结束
+age=25, name=陈九
+age=25, name=张八
+```
+
+age = 21 锁定了一个**连续区间**，在这个区间内 name 是有序排列的。所以可以直接在索引里做范围扫描，找到 `张` 开头的连续段，不满足的直接跳过。
+
+---
+
+**age > 20 时，name 是全局无序的**
+
+```
+age=21, name=张一
+age=21, name=张八
+age=21, name=王五
+age=25, name=陈九   ← 换了一个 age，name 重新从头排序
+age=25, name=张八
+age=30, name=李二   ← 又换了一个 age，name 再次重新排序
+age=30, name=张一
+```
+
+跨越多个 age 值之后，name **没有全局连续的有序区间**，无法用索引直接定位，只能逐条遍历再过滤。
+
+---
+
+**结论**
+
+| 条件 | name 的状态 | name 的作用 |
+|---|---|---|
+| `age = 21` | 局部有序（单个区间内） | 可以索引范围扫描 |
+| `age > 20` | 全局无序（跨多个区间） | 只能 ICP 过滤，不能索引查找 |
+
+所以等值查询的核心优势就是：**把多个无序区间收窄成一个有序区间**，后续字段才能继续发挥索引的查找能力。
+
+**一句话总结：** 范围查询（`>`）会让联合索引在该字段之后的列失去"索引查找"能力，但 ICP 保留了"索引过滤"能力，减少回表，这是两者本质的区别。
+
+
+
+:::
+
 ### 5.2 🆕 降序索引 (Descending Index)
 
 MySQL 8.0 之前虽然语法上支持降序索引,但实际创建的仍是升序索引。MySQL 8.0 开始真正支持降序索引。
@@ -338,7 +444,7 @@ SHOW INDEX FROM user;
 
 从 MySQL 8.0.17 开始,支持在 JSON 数组列上创建多值索引。
 
-**示例**:
+**示例1**:
 
 ```sql
 CREATE TABLE products (
@@ -347,6 +453,24 @@ CREATE TABLE products (
     INDEX idx_zipcode ((CAST(data->'$.zipcode' AS UNSIGNED ARRAY)))
 );
 ```
+
+**示例2**:
+
+```sql
+-- 建表时创建多值索引
+CREATE TABLE orders (
+  id    INT PRIMARY KEY,
+  tags  JSON
+);
+
+ALTER TABLE orders ADD INDEX idx_tags ((CAST(tags -> '$[*]' AS UNSIGNED ARRAY)));
+
+-- 能走索引的查询
+SELECT * FROM orders WHERE 3 MEMBER OF (tags);
+SELECT * FROM orders WHERE JSON_CONTAINS(tags, '[1, 3]');
+```
+
+适用场景： 商品标签、用户兴趣、权限列表等存在 JSON 数组的字段。没有多值索引之前，这类查询只能全表扫描。
 
 单个数据记录可以有多个索引记录,优化器会自动使用多值索引。
 

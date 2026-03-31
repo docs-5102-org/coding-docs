@@ -1,5 +1,5 @@
 ---
-title: 如何解决幻读
+title: 如何解决幻读 ⭐️⭐️⭐️⭐️⭐️
 category:
   - 数据库
 tag:
@@ -46,14 +46,14 @@ COMMIT;
 
 ## MySQL如何解决幻读
 
-### 1. Next-Key Locking机制
+### 1. Next-Key Locking(Lock)机制
 
 InnoDB在REPEATABLE READ事务隔离级别下默认运行。在这种情况下，InnoDB对搜索和索引扫描使用next-key锁，这可以防止幻读。
 
 #### Next-Key Lock的组成
 - **Record Lock（记录锁）**：锁定索引记录
 - **Gap Lock（间隙锁）**：锁定索引记录之间的间隙
-- **Next-Key Lock**：Record Lock + Gap Lock的组合
+- **Next-Key Lock**：Record Lock + Gap Lock 的组合，锁定某条索引记录本身以及该记录之前的间隙，即一个左开右闭的区间 (上一条记录, 当前记录]。
 
 #### 工作原理示例
 查询从id大于100的第一条记录开始扫描索引。假设表中包含id值为90和102的行。如果在扫描范围内设置的索引记录锁不能阻止在间隙中的插入（在这种情况下，是90和102之间的间隙），另一个会话可以向表中插入id为101的新行。
@@ -70,15 +70,17 @@ INSERT INTO test_phantom VALUES (10, 'A'), (20, 'B'), (30, 'C');
 -- 事务1
 BEGIN;
 SELECT * FROM test_phantom WHERE id > 15 FOR UPDATE;
--- 这会锁定：
--- - 记录20, 30（Record Lock）
--- - 间隙(15, 20), (20, 30), (30, +∞)（Gap Lock）
+-- 这会锁定（Next-Key Lock，左开右闭）：
+-- - (10, 20]  锁定间隙(10,20) + 记录20
+-- - (20, 30]  锁定间隙(20,30) + 记录30
+-- - (30, +∞)  锁定间隙(30,+∞)，无上界记录，退化为 Gap Lock
 
 -- 事务2（会被阻塞）
-INSERT INTO test_phantom VALUES (16, 'D'); -- 阻塞，因为16在(15,20)间隙中
-INSERT INTO test_phantom VALUES (25, 'E'); -- 阻塞，因为25在(20,30)间隙中
-INSERT INTO test_phantom VALUES (35, 'F'); -- 阻塞，因为35在(30,+∞)间隙中
+INSERT INTO test_phantom VALUES (16, 'D'); -- 阻塞，16 在 (10, 20] 范围内
+INSERT INTO test_phantom VALUES (25, 'E'); -- 阻塞，25 在 (20, 30] 范围内
+INSERT INTO test_phantom VALUES (35, 'F'); -- 阻塞，35 在 (30, +∞) 范围内
 ```
+
 
 ### 2. 事务隔离级别
 

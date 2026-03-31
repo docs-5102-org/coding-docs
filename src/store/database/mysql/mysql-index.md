@@ -1,5 +1,5 @@
 ---
-title: 索引指南
+title: 索引指南 ⭐️⭐️⭐️⭐️⭐️
 category:
   - 数据库
 tag:
@@ -85,8 +85,9 @@ ALTER TABLE `table_name` ADD INDEX index_name (`column1`, `column2`, `column3`);
 **示例：**
 ```sql
 -- 假设有联合索引 INDEX(a, b, c)
-SELECT * FROM table WHERE b = 1 AND c = 2;  -- 不会使用索引
-SELECT * FROM table WHERE a = 1 AND b = 2;  -- 会使用索引
+SELECT * FROM table WHERE b = 1 AND c = 2;  -- ❌ 不使用跳过了最左列 a
+SELECT * FROM table WHERE a = 1 AND b = 2;  -- ✅ 使用 a, b 两列, 从最左列开始连续匹配
+SELECT * FROM table WHERE a = 1 AND c = 2;  -- ⚠️ 只用 a, b 被跳过，c 失效，只有 a 生效
 ```
 
 ### 4.3 LIKE查询以%开头

@@ -1,5 +1,5 @@
 ---
-title: 为什么MySQL官方建议使用自增主键?
+title: 为什么MySQL官方建议使用自增主键? ⭐️⭐️⭐️
 category:
   - 数据库
 tag:
@@ -95,6 +95,13 @@ Page 2: [uuid_g, uuid_m, uuid_x, uuid_z] ← 新页存后一半
 - ❌ 需要移动约50%的数据到新页
 - ❌ 需要更新父节点的索引指针
 - ❌ 造成页空间浪费（两个页都只用了约50%）
+
+如图：
+
+<img :src="$withBase('/assets/images/store/innodb.png')" 
+  alt=""
+  width="800px" 
+  height="auto">
 
 ### 优势2：减少数据移动
 

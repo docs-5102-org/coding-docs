@@ -45,7 +45,7 @@ MySQL版本：5.7+ (建议主从版本一致或从库版本更高)
 # 服务器ID，必须唯一
 server-id = 1
 
-# 启用二进制日志
+# 启用二进制日志 主库产生，记录"我做了什么变更"
 log-bin = mysql-bin
 
 # 需要同步的数据库
@@ -95,7 +95,7 @@ SHOW MASTER STATUS;
 # 服务器ID，必须与主服务器不同
 server-id = 2
 
-# 中继日志
+# 中继日志 从库产生，记录"我从主库收到了什么"
 relay-log = relay-bin
 
 # 只读模式（可选）
@@ -138,6 +138,12 @@ SHOW SLAVE STATUS\G
 确保以下两项都显示为 `Yes`：
 - `Slave_IO_Running: Yes`
 - `Slave_SQL_Running: Yes`
+
+
+<img :src="$withBase('/assets/images/store/master-slave.png')" 
+  alt="复制过程中的位置"
+  width="800px" 
+  height="auto">
 
 ### 3. 双主复制配置
 
