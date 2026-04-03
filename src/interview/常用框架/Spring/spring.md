@@ -47,14 +47,250 @@ AOP(Aspect Oriented Programming)即面向切面编程,通过预编译方式和�
 
 **核心思想**: 统一处理某一"切面"的问题,如日志记录、异常处理、事务管理等横切关注点。
 
+### @Aspect 原理
+
+#### 核心概念 — AOP
+
+`@Aspect` 是 Spring AOP（面向切面编程）的实现，本质是**动态代理**。
+
+```
+原始调用:  Controller → Service.method()
+AOP调用:   Controller → 代理对象 → [切面逻辑] → Service.method() → [切面逻辑]
+```
+
+#### 底层代理机制
+
+```
+目标类实现了接口  →  JDK 动态代理  (java.lang.reflect.Proxy)
+目标类没有接口   →  CGLIB 代理    (生成子类字节码)
+```
+
+---
+
+#### 核心注解
+
+| 注解 | 时机 | 常用场景 |
+|------|------|---------|
+| `@Before` | 方法执行前 | 参数校验、权限检查 |
+| `@After` | 方法执行后（无论成败） | 资源清理 |
+| `@AfterReturning` | 方法正常返回后 | 返回值处理 |
+| `@AfterThrowing` | 方法抛异常后 | 异常统一处理 |
+| `@Around` | 包裹整个方法 | 日志、耗时、事务 |
+
+---
+
+#### 常见示例
+
+**1. 接口耗时统计**
+
+```java
+@Aspect
+@Component
+public class TimingAspect {
+
+    @Around("execution(* com.example.service..*(..))")
+    public Object logTime(ProceedingJoinPoint pjp) throws Throwable {
+        long start = System.currentTimeMillis();
+        String method = pjp.getSignature().toShortString();
+
+        try {
+            return pjp.proceed();  // 执行原方法
+        } finally {
+            long cost = System.currentTimeMillis() - start;
+            System.out.printf("[耗时] %s → %dms%n", method, cost);
+        }
+    }
+}
+```
+
+---
+
+**2. 操作日志记录（配合自定义注解）**
+
+```java
+// 自定义注解
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Log {
+    String value() default "";
+}
+
+// 切面
+@Aspect
+@Component
+public class LogAspect {
+
+    @AfterReturning(
+        pointcut = "@annotation(log)",
+        returning = "result"
+    )
+    public void saveLog(JoinPoint jp, Log log, Object result) {
+        String user    = SecurityContext.currentUser();
+        String action  = log.value();
+        String method  = jp.getSignature().getName();
+        // 存数据库...
+        System.out.printf("[日志] 用户=%s 操作=%s 方法=%s%n", user, action, method);
+    }
+}
+
+// 使用
+@Log("删除用户")
+public void deleteUser(Long id) { ... }
+```
+
+---
+
+**3. 权限校验**
+
+```java
+@Aspect
+@Component
+public class AuthAspect {
+
+    @Before("@annotation(requiresRole)")
+    public void checkRole(RequiresRole requiresRole) {
+        String required = requiresRole.value();
+        String current  = SecurityContext.getRole();
+
+        if (!current.equals(required)) {
+            throw new AccessDeniedException("需要角色: " + required);
+        }
+    }
+}
+
+// 使用
+@RequiresRole("ADMIN")
+public void deleteUser(Long id) { ... }
+```
+
+---
+
+**4. 接口限流（令牌桶）**
+
+```java
+@Aspect
+@Component
+public class RateLimitAspect {
+
+    private final Map<String, RateLimiter> limiters = new ConcurrentHashMap<>();
+
+    @Around("@annotation(rateLimit)")
+    public Object limit(ProceedingJoinPoint pjp, RateLimit rateLimit) throws Throwable {
+        String key = pjp.getSignature().toString();
+        RateLimiter limiter = limiters.computeIfAbsent(
+            key, k -> RateLimiter.create(rateLimit.qps())
+        );
+
+        if (!limiter.tryAcquire()) {
+            throw new RuntimeException("请求过于频繁，请稍后再试");
+        }
+        return pjp.proceed();
+    }
+}
+
+// 使用
+@RateLimit(qps = 10)
+public Result query(String keyword) { ... }
+```
+
+---
+
+**5. 异常统一处理**
+
+```java
+@Aspect
+@Component
+public class ExceptionAspect {
+
+    @AfterThrowing(
+        pointcut = "execution(* com.example..*(..))",
+        throwing  = "ex"
+    )
+    public void handleException(JoinPoint jp, Exception ex) {
+        String method = jp.getSignature().toShortString();
+        // 告警、入库、钉钉通知...
+        log.error("[异常] 方法={} 错误={}", method, ex.getMessage());
+    }
+}
+```
+
+---
+
+### Pointcut 表达式速查
+
+```java
+// 某包下所有方法
+execution(* com.example.service.*.*(..))
+
+// 某类所有方法
+execution(* com.example.UserService.*(..))
+
+// 带特定注解的方法
+@annotation(com.example.annotation.Log)
+
+// 带特定注解的类
+@within(org.springframework.stereotype.Service)
+
+// 组合使用
+@Pointcut("execution(* com.example..*(..)) && @annotation(Log)")
+```
+
+---
+
+#### 执行顺序
+
+```
+@Around(前) 
+  → @Before 
+    → 目标方法 
+  → @AfterReturning / @AfterThrowing 
+→ @After 
+→ @Around(后)
+```
+
+
 ### 4. 什么是IOC?
 
-IOC(Inversion of Control)即控制反转,是Spring的核心概念。
+IOC 是一种设计思想，核心是**把对象的创建权和依赖关系的管理权，从代码本身转移给外部容器**。Spring 通过 DI（依赖注入）来实现 IOC —— 你只需声明需要什么，容器负责创建和组装。好处是对象之间不再互相 `new`，耦合度大幅降低，也更易于单元测试（可以直接注入 Mock 对象）。
 
-**传统方式**: 对象自己控制内部成员的创建和管理  
-**IOC方式**: 将对象的创建和管理权交给Spring容器
+```java
+// 传统方式：调用者主动 new，依赖关系写死在代码里
+public class OrderService {
+    // 自己创建依赖，耦合死了
+    private UserService userService = new UserServiceImpl();
+}
 
-**优势**: 降低耦合度,提高代码可维护性和可测试性
+// IOC 方式：依赖由容器注入，调用者不关心怎么创建
+public class OrderService {
+    @Autowired
+    private UserService userService;  // 容器负责创建并注入
+}
+```
+
+---
+
+#### IOC 和 DI 的关系 ?
+
+IOC 是思想，DI（依赖注入）是实现手段，两者经常混用但不完全相同。
+
+#### 控制反转的"反转"体现在哪?
+
+```
+传统:  OrderService  →  主动 new UserService()     # 控制权在自己
+IOC:   Spring容器    →  创建并注入给 OrderService   # 控制权反转给容器
+```
+
+#### 容器的本质
+
+Spring IOC 容器本质是一个 **Map**，存放所有被管理的 Bean：
+
+```java
+Map<String, Object> iocContainer = {
+    "orderService" → OrderService实例,
+    "userService"  → UserServiceImpl实例,
+    ...
+}
+```
 
 ---
 
@@ -708,15 +944,204 @@ Resource定位 → BeanDefinition载入 → BeanDefinition注册
 
 ### 26. Spring循环依赖解决
 
-Spring通过三级缓存解决循环依赖:
+**✅ 三级缓存结构描述**：
 
-1. **一级缓存** - 存放完整的Bean实例
-2. **二级缓存** - 存放早期暴露的Bean实例
-3. **三级缓存** - 存放Bean工厂对象
+```java
+// 一级缓存 — 存放完整可用的 Bean（初始化完成）
+Map<String, Object> singletonObjects;
 
-**注意**: 只能解决setter注入的循环依赖,构造器注入的循环依赖无法解决。
+// 二级缓存 — 存放早期暴露的原始 Bean（未完成初始化，属性未注入）
+Map<String, Object> earlySingletonObjects;
 
-### 27. AOP中final方法的注意事项
+// 三级缓存 — 存放 ObjectFactory，存 Lambda  需要调用才能得到对象，调用时才决定返回原始还是代理
+Map<String, ObjectFactory<?>> singletonFactories;
+```
+
+> ⚠️ 三级缓存存的不是"Bean工厂对象"，更准确说是 **ObjectFactory Lambda**，调用它才能拿到早期引用（普通Bean返回原始对象，AOP Bean返回代理对象）。
+
+---
+
+**三级缓存怎么配合工作**：
+
+```
+A 依赖 B，B 依赖 A 的循环依赖解决过程：
+
+1. 创建 A 的原始对象
+2. 将 A 的 ObjectFactory 放入三级缓存
+3. 注入 A 的属性，发现需要 B
+4. 创建 B 的原始对象
+5. 将 B 的 ObjectFactory 放入三级缓存
+6. 注入 B 的属性，发现需要 A
+7. 从三级缓存取出 A 的 ObjectFactory，生成 A 的早期引用
+8. 将早期引用放入二级缓存，删除三级缓存中的 A
+9. B 拿到 A 的早期引用，完成属性注入
+10. B 初始化完成，放入一级缓存
+11. A 拿到完整的 B，完成属性注入
+12. A 初始化完成，放入一级缓存
+```
+
+---
+
+**为什么需要三级缓存而不是二级**
+
+```
+如果没有三级缓存，只用二级缓存：
+  → 提前暴露的只能是原始对象
+  → 如果 A 需要被 AOP 代理，其他 Bean 拿到的是原始 A，不是代理 A
+  → 最终容器里有两个 A：代理A（一级缓存）和原始A（被其他Bean持有）
+  → 数据不一致！
+
+三级缓存的 ObjectFactory 解决了这个问题：
+  → 调用时判断是否需要代理，需要则返回代理对象，不需要则返回原始对象
+  → 保证其他 Bean 拿到的引用和最终一级缓存的对象一致
+```
+
+具体例子从头推演一遍。
+
+```
+@Service
+public class A {
+    @Autowired private B b;
+}
+
+@Service
+@Aspect          // A 需要被 AOP 代理
+public class B {
+    @Autowired private A a;
+}
+```
+
+A 依赖 B，B 依赖 A，且 **A 需要生成代理对象**。
+
+---
+
+假设只有二级缓存，会发生什么
+
+```
+第1步: 创建 A 的原始对象  →  A原始
+第2步: 把 A原始 放入二级缓存
+第3步: A 需要注入 B，开始创建 B
+第4步: 创建 B 的原始对象  →  B原始
+第5步: B 需要注入 A，从二级缓存取出 →  拿到 A原始
+第6步: B 完成初始化，B持有的是 A原始
+第7步: A 完成初始化
+第8步: Spring 对 A 进行 AOP 代理  →  生成 A代理
+第9步: 把 A代理 放入一级缓存
+
+结果：
+  一级缓存里是 A代理
+  B 持有的是 A原始   ← 和一级缓存里的不是同一个对象！
+
+Controller → A代理  ✅
+B 内部用的 → A原始  ❌  
+
+同一个 A，两个身份，数据不一致！
+
+```
+
+:::tip
+
+**为什么第2步不能直接存代理对象**
+
+原因是这个时候根本没办法创建代理对象。
+
+第1步: 刚刚 new 出来 A原始
+         ↓
+         此时 A 的状态：
+           属性还没注入   （@Autowired 的 B 还是 null）
+           @PostConstruct 还没执行
+           各种后置处理器还没跑
+         ↓
+         AOP 代理的生成依赖完整的 Bean
+         一个"残缺"的对象，没有意义去代理它
+
+**AOP 代理正常的生成时机**
+
+实例化 → 属性注入 → 初始化 → 后置处理器(BeanPostProcessor) → 生成代理对象
+                                        ↑
+                              代理在这里才生成（第6步之后）
+
+:::
+
+三级缓存如何解决？
+
+```
+// 三级缓存存的是这样一个 Lambda
+() -> {
+    if (A需要AOP代理) {
+        return A的代理对象;   // 提前生成代理
+    } else {
+        return A的原始对象;
+    }
+}
+```
+
+再走一遍流程：
+```
+第1步: 创建 A 的原始对象  →  A原始
+第2步: 把 【生成A引用的Lambda】 放入三级缓存
+第3步: A 需要注入 B，开始创建 B
+第4步: 创建 B 的原始对象  →  B原始
+第5步: B 需要注入 A
+         → 从三级缓存取出 Lambda，执行它
+         → Lambda 判断 A 需要代理，提前生成 A代理
+         → 把 A代理 放入二级缓存（备用）
+         → B 拿到的是 A代理  ✅
+第6步: B 完成初始化，B持有 A代理
+第7步: A 完成初始化
+第8步: 从二级缓存取出已经生成好的 A代理，放入一级缓存
+
+结果：
+  一级缓存里是 A代理
+  B 持有的也是 A代理  ✅ 同一个对象！
+```
+
+---
+
+### 一句话总结
+```
+二级缓存：只能提前暴露原始对象，AOP场景下会导致两个版本的A并存
+
+三级缓存：提前暴露的是一个"按需生成"的工厂
+          需要代理 → 提前造代理给别人
+          不需要代理 → 给原始对象
+          保证所有人拿到的是同一个对象
+```
+
+---
+
+**无法解决的场景**
+
+```java
+// ❌ 构造器注入，无法解决
+// 原因：实例化阶段就需要依赖，还没机会放入三级缓存
+@Service
+public class A {
+    public A(B b) { }  // 构造时就要 B
+}
+
+// ❌ @Scope("prototype") 原型Bean，无法解决
+// 原因：原型Bean不走三级缓存机制
+
+// ✅ Setter 注入 / @Autowired 字段注入，可以解决
+// 原因：先实例化，再注入属性，有机会提前暴露早期引用
+```
+
+---
+
+**Spring Boot 2.6+ 的变化**
+
+```yaml
+# Spring Boot 2.6 开始默认禁止循环依赖，启动直接报错
+# 如需开启（不推荐）：
+spring:
+  main:
+    allow-circular-references: true
+```
+
+> 官方态度：**循环依赖本身是设计问题**，应通过拆分类、引入中间层来从根本上解决，而不是依赖框架兜底。
+
+### 27. AOP 中 final方法的注意事项
 
 Spring AOP默认使用CGLIB生成目标对象的子类:
 

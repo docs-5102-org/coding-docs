@@ -53,47 +53,137 @@ Spring Boot是Spring团队提供的一个**开箱即用的快速开发框架**�
 
 **核心回答:**
 
-Spring Boot自动装配是通过`@EnableAutoConfiguration`注解实现的,它能根据项目中引入的依赖自动配置Spring应用上下文。
+Spring Boot 自动装配通过 `@EnableAutoConfiguration` 注解实现，能根据项目引入的依赖自动配置 Spring 应用上下文。
+
+---
 
 **实现机制:**
 
-1. **@EnableAutoConfiguration注解**
-   - 标注在启动类的`@SpringBootApplication`中(组合注解)
-   - 通过`@Import(AutoConfigurationImportSelector.class)`导入自动配置类
-   - `AutoConfigurationImportSelector`会扫描并加载所有候选的自动配置类
+**1. @EnableAutoConfiguration 注解**
+- 包含在启动类的 `@SpringBootApplication` 组合注解中
+- 通过 `@Import(AutoConfigurationImportSelector.class)` 导入自动配置选择器
+- `AutoConfigurationImportSelector` 负责扫描并加载所有候选的自动配置类
 
-2. **spring.factories文件**
-   - 位置:`META-INF/spring.factories`
-   - 作用:定义了需要自动装配的配置类清单
-   - Spring Boot会读取所有jar包中的该文件,加载配置类
+**2. 自动配置类候选名单（版本有差异）**
 
-3. **条件化装配(@Conditional)**
-   - `@ConditionalOnClass`:classpath中存在指定类时生效
-   - `@ConditionalOnBean`:容器中存在指定Bean时生效
-   - `@ConditionalOnMissingBean`:容器中不存在指定Bean时生效
-   - `@ConditionalOnProperty`:配置文件中存在指定属性时生效
+- **Spring Boot 2.7 之前**：读取 `META-INF/spring.factories` 中 `EnableAutoConfiguration` 对应的配置类清单
+- **Spring Boot 2.7 开始**：迁移到新文件 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`，每行一个配置类，共144个候选类
+- `spring.factories` 仍保留，但只负责 **监听器、初始化器、过滤器** 等其他职责，不再承载自动配置类名单
+- **Spring Boot 3.x**：完全移除 `spring.factories` 中的自动配置支持，只认新文件
+
+**3. 预过滤（快速筛除）**
+
+在逐个解析 `@Conditional` 之前，`spring.factories` 中注册的三个 Filter 会先做一轮快速筛除：
+```properties
+AutoConfigurationImportFilter=\
+  OnBeanCondition,\
+  OnClassCondition,\
+  OnWebApplicationCondition
+```
+比如你没引入 Redis 依赖，`RedisAutoConfiguration` 在这一步就直接被淘汰，不会进入后续流程。
+
+**4. 条件化装配（@Conditional）**
+
+通过预过滤的配置类，再逐个进行细粒度条件判断：
+
+- `@ConditionalOnClass`：classpath 中存在指定类时生效
+- `@ConditionalOnMissingBean`：容器中不存在指定 Bean 时生效
+- `@ConditionalOnBean`：容器中存在指定 Bean 时生效
+- `@ConditionalOnProperty`：配置文件中存在指定属性时生效
+
+---
 
 **执行流程:**
 ```
-@SpringBootApplication启动
+@SpringBootApplication 启动
     ↓
-@EnableAutoConfiguration生效
+@EnableAutoConfiguration 生效
     ↓
-AutoConfigurationImportSelector扫描spring.factories
+AutoConfigurationImportSelector 扫描候选配置类
     ↓
-加载所有自动配置类(xxxAutoConfiguration)
+2.7之前 → 读 spring.factories 里的 EnableAutoConfiguration
+2.7开始 → 读 META-INF/spring/*.AutoConfiguration.imports（144个候选类）
     ↓
-根据@Conditional条件判断是否生效
+AutoConfigurationImportFilter 预过滤（OnClassCondition等）快速淘汰无关配置
     ↓
-向容器注入配置的Bean
+剩余配置类逐个解析 @Conditional 条件
+    ↓
+条件全部满足 → 向容器注入 Bean
+条件不满足   → 跳过
 ```
+
+---
 
 **示例说明:**
 
-以`DataSourceAutoConfiguration`为例:
-- spring.factories中定义:`org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration`
-- 条件:`@ConditionalOnClass(DataSource.class)` - 当存在DataSource类
-- 效果:自动配置数据源相关Bean
+以 `RedisAutoConfiguration` 为例：
+- **2.7+ 名单位置**：`AutoConfiguration.imports` 中的一行
+- **预过滤**：`OnClassCondition` 检查 classpath 是否有 `RedisOperations.class`，没引入 Redis 依赖直接淘汰
+- **条件注解**：`@ConditionalOnMissingBean` 检查用户是否自定义了 RedisTemplate，没有才自动注入
+- **最终效果**：引入 `spring-boot-starter-data-redis` 依赖后，无需任何配置即可使用 RedisTemplate
+
+---
+
+**补充说明（常见误区）：）**
+
+| 文件 | 作用 | 影响运行时 |
+|------|------|-----------|
+| `AutoConfiguration.imports` | 自动配置类候选名单 | ✅ 是 |
+| `spring.factories` | 监听器/过滤器/初始化器等 | ✅ 是 |
+| `spring-configuration-metadata.json` | IDE 代码提示（yml补全） | ❌ 否 |
+
+
+:::tip
+
+**AutoConfigurationImportFilter 这个配置的作用**
+
+```properties
+AutoConfigurationImportFilter=\
+  OnBeanCondition,\
+  OnClassCondition,\
+  OnWebApplicationCondition
+``` 
+
+它是告诉 Spring：**"这三个类是过滤器，用来对自动配置类进行预筛选"**
+
+本质是一个**注册声明**，通过 `spring.factories` 的 SPI 机制，让 Spring 知道去用这三个类做过滤。
+
+---
+
+**加载过程**
+
+```
+AutoConfigurationImportSelector 读取候选配置类名单
+    ↓
+去 spring.factories 里找 AutoConfigurationImportFilter 的实现
+    ↓
+找到三个：OnBeanCondition、OnClassCondition、OnWebApplicationCondition
+    ↓
+实例化这三个 Filter
+    ↓
+用这三个 Filter 逐个检查144个候选配置类
+    ↓
+任意一个 Filter 返回 false → 该配置类被淘汰
+```
+
+---
+
+**三个 Filter 各自的职责**
+
+| Filter | 对应注解 | 检查什么 |
+|--------|---------|---------|
+| `OnClassCondition` | `@ConditionalOnClass` | classpath 有没有这个类 |
+| `OnBeanCondition` | `@ConditionalOnBean` | 容器里有没有这个 Bean |
+| `OnWebApplicationCondition` | `@ConditionalOnWebApplication` | 是不是 Web 环境 |
+
+---
+
+**一句话总结**
+
+这个配置就是**通过 SPI 注册了三个过滤器**，`AutoConfigurationImportSelector` 启动时读取它们，用来对144个候选配置类做预筛选，本身不干过滤的活，只是告诉 Spring **"过滤器是谁"**。
+
+:::
+
 
 ---
 
@@ -1633,6 +1723,92 @@ nohup java -jar application.jar > app.log 2>&1 &
 # 后台运行并指定PID文件
 nohup java -jar application.jar > /dev/null 2>&1 & echo $! > app.pid
 ```
+
+##### JVM 参数（`-jar` 之前）
+
+```bash
+java -Xmx512m -Xms256m \
+     -Dserver.port=8080 \
+     -Dspring.profiles.active=prod \
+     -jar target/application.jar
+```
+
+| 参数 | 说明 |
+|------|------|
+| `-Xmx512m` | 最大堆内存 512MB |
+| `-Xms256m` | 初始堆内存 256MB |
+| `-Xss512k` | 每个线程栈大小 |
+| `-XX:+UseG1GC` | 使用 G1 垃圾回收器 |
+| `-Dkey=value` | 设置系统属性 |
+
+---
+
+##### Spring Boot 常用参数
+
+```bash
+# 指定端口 + 环境
+java -jar target/application.jar \
+     --server.port=9090 \
+     --spring.profiles.active=dev
+
+# 指定配置文件路径
+java -jar target/application.jar \
+     --spring.config.location=./config/application.yml
+
+# 覆盖数据库配置
+java -jar target/application.jar \
+     --spring.datasource.url=jdbc:mysql://localhost:3306/mydb \
+     --spring.datasource.username=root \
+     --spring.datasource.password=123456
+```
+
+---
+
+##### 完整组合示例
+
+```bash
+java \
+  -Xmx1g \
+  -Xms512m \
+  -XX:+UseG1GC \
+  -XX:+HeapDumpOnOutOfMemoryError \
+  -XX:HeapDumpPath=/logs/heap.hprof \
+  -Dfile.encoding=UTF-8 \
+  -Dspring.profiles.active=prod \
+  -jar target/application.jar \
+  --server.port=8080 \
+  --logging.level.root=INFO
+```
+
+---
+
+##### 后台运行 + 日志输出
+
+```bash
+# 后台运行，日志写入文件
+nohup java -jar target/application.jar \
+     --server.port=8080 \
+     > logs/app.log 2>&1 &
+
+# 查看进程
+ps aux | grep application.jar
+
+# 查看日志
+tail -f logs/app.log
+```
+
+---
+
+##### 参数位置总结
+
+```
+java  [JVM参数]  -jar app.jar  [应用参数]
+       ↑                         ↑
+  -Xmx / -D...            --server.port
+  (影响JVM本身)            (传给应用程序)
+```
+
+> **规律**：`-D` 开头是 JVM 系统属性，`--` 开头是 Spring Boot 应用参数，两者都能在代码里读到，但写法和优先级不同。
 
 **Spring Boot打包特点：**
 - 生成可执行的Fat Jar（包含所有依赖）

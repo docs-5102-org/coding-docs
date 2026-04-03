@@ -86,6 +86,23 @@ eureka:
     eviction-interval-timer-in-ms: 4000  # 清理间隔（默认60秒）
 ```
 
+:::tip
+
+#### Eureka Server 心跳计算
+
+Eureka Server 每分钟收到的心跳续约数
+  < 期望心跳数 × 85%
+
+期望心跳数 = 注册实例数 × 2
+（默认每个实例每30秒发一次心跳，每分钟2次）
+
+例如：注册了100个实例
+  期望心跳 = 100 × 2 = 200次/分钟
+  触发阈值 = 200 × 85% = 170次/分钟
+  实际低于170次 → 触发自我保护
+
+:::
+
 ### 7. Nacos 与 Eureka 的区别？
 
 | 对比项 | Nacos | Eureka |
@@ -191,32 +208,196 @@ public interface UserServiceClient {
 - 服务限流
 - 服务隔离
 
-### 13. Hystrix 的工作原理？
+### 13. Hystrix（/hɪs'trɪks/ 中文近似音："嗨斯崔克斯"） 的工作原理？
 
-**核心功能：**
+#### 服务隔离
 
-1. **服务隔离**：使用线程池或信号量隔离不同的服务调用
-2. **服务熔断**：当失败率达到阈值时，自动熔断服务
-3. **服务降级**：当服务不可用时，返回降级响应
-4. **请求缓存**：对相同请求进行缓存
-5. **请求合并**：将多个请求合并为一个
+Hystrix 提供两种隔离方式：
 
-**熔断器状态：**
-- **Closed（关闭）**：正常处理请求
-- **Open（打开）**：拒绝所有请求，直接降级
-- **Half-Open（半开）**：尝试放行部分请求，判断服务是否恢复
+```
+线程池隔离（默认）        信号量隔离
+─────────────────        ─────────────
+每个服务独立线程池          同一线程，计数器控制
+支持超时控制               不支持超时
+开销较大                   开销极小
+适合：外部服务调用          适合：内部逻辑、高并发
+```
 
-**配置示例：**
+```java
+@HystrixCommand(
+    commandProperties = {
+        // 隔离方式：THREAD 或 SEMAPHORE
+        @HystrixProperty(name = "execution.isolation.strategy", value = "THREAD")
+    },
+    threadPoolProperties = {
+        @HystrixProperty(name = "coreSize", value = "10"),        // 核心线程数
+        @HystrixProperty(name = "maximumSize", value = "20"),     // 最大线程数
+        @HystrixProperty(name = "maxQueueSize", value = "100")    // 队列大小
+    }
+)
+public String callServiceA() { ... }
+```
+
+```
+服务A的线程池 [T1 T2 T3 ... T10]   ← 最多占用10个线程
+服务B的线程池 [T1 T2 T3 ... T10]   ← 互不影响
+
+服务A挂了 → 服务A线程池耗尽
+           → 服务B线程池不受影响 ✅
+```
+
+---
+
+#### 熔断器三种状态
+
+```
+                 失败率 > 50%
+   Closed ──────────────────────→ Open
+     ↑                              │
+     │                              │ 等待 5s（休眠窗口）
+     │                              ↓
+     └────────────────────── Half-Open
+          放行一个请求
+          成功 → Closed
+          失败 → Open
+```
+
+**Closed（关闭）— 正常状态**
+```
+请求 → Hystrix → 真实服务
+在10秒窗口内统计：
+  请求数 >= 10（requestVolumeThreshold）
+  且失败率 >= 50%（errorThresholdPercentage）
+  → 触发熔断，切换到 Open
+```
+
+**Open（打开）— 熔断状态**
+```
+请求 → Hystrix → 直接拒绝，不调用真实服务
+               → 直接走 fallback 降级方法
+等待 5秒（sleepWindowInMilliseconds）后 → 切换到 Half-Open
+```
+
+**Half-Open（半开）— 探测状态**
+```
+放行第一个请求 → 真实服务
+  成功 → 恢复 Closed，清空统计
+  失败 → 重新回到 Open，再等 5秒
+```
+
+---
+
+#### 配置参数详解
+
 ```java
 @HystrixCommand(
     fallbackMethod = "fallback",
     commandProperties = {
-        @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds", value = "3000"),
-        @HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "10"),
-        @HystrixProperty(name = "circuitBreaker.errorThresholdPercentage", value = "50")
+
+        // ① 超时时间：调用超过 3s 视为失败，触发 fallback
+        @HystrixProperty(
+            name  = "execution.isolation.thread.timeoutInMilliseconds",
+            value = "3000"
+        ),
+
+        // ② 触发熔断的最小请求数：10秒内至少10个请求才统计失败率
+        //    请求数不足时，即使全部失败也不熔断
+        @HystrixProperty(
+            name  = "circuitBreaker.requestVolumeThreshold",
+            value = "10"
+        ),
+
+        // ③ 失败率阈值：失败率超过 50% 触发熔断
+        @HystrixProperty(
+            name  = "circuitBreaker.errorThresholdPercentage",
+            value = "50"
+        ),
+
+        // ④ 熔断后休眠时间：Open 状态等待 5s 后进入 Half-Open
+        @HystrixProperty(
+            name  = "circuitBreaker.sleepWindowInMilliseconds",
+            value = "5000"
+        ),
+
+        // ⑤ 统计窗口大小：在 10s 内统计请求数和失败率
+        @HystrixProperty(
+            name  = "metrics.rollingStats.timeInMilliseconds",
+            value = "10000"
+        )
     }
 )
+public String callService() {
+    return remoteService.call();
+}
+
+// 降级方法：签名必须和原方法一致
+public String fallback() {
+    return "服务暂时不可用，请稍后再试";
+}
 ```
+
+---
+
+#### 服务降级触发场景
+
+```
+以下情况都会触发 fallback：
+
+1. 超时          调用时间 > timeoutInMilliseconds
+2. 熔断          熔断器处于 Open 状态
+3. 异常          方法抛出异常（除 HystrixBadRequestException）
+4. 线程池满      线程池/信号量资源耗尽
+```
+
+```java
+// HystrixBadRequestException 不触发降级，直接抛出
+// 适合参数校验失败等业务异常，不应计入失败统计
+public String callService(String param) {
+    if (param == null) {
+        throw new HystrixBadRequestException("参数不能为空");
+    }
+    return remoteService.call(param);
+}
+```
+
+---
+
+#### 请求缓存 & 请求合并
+
+**请求缓存**
+```java
+@HystrixCommand(cacheKeyMethod = "getCacheKey")
+public User getUser(Long id) {
+    return userService.getById(id);  // 同一请求内，相同id只调用一次
+}
+
+private String getCacheKey(Long id) {
+    return String.valueOf(id);
+}
+```
+
+**请求合并**
+```java
+// 100ms 内的请求自动合并为一次批量调用
+@HystrixCollapser(batchMethod = "getUsers")
+public Future<User> getUser(Long id) { return null; }
+
+@HystrixCommand
+public List<User> getUsers(List<Long> ids) {
+    return userService.getByIds(ids);  // 批量查询
+}
+```
+
+```
+单个请求：getUser(1), getUser(2), getUser(3)  ← 100ms内
+合并后：  getUsers([1, 2, 3])                 ← 一次调用 ✅
+```
+
+---
+
+#### 现状说明
+
+> Hystrix 已于 2018 年停止维护，Spring Cloud 生态目前推荐迁移到 **Resilience4j**，思想基本相同但更轻量，面试了解原理即可，新项目优先用 Resilience4j。
 
 ### 14. Sentinel 与 Hystrix 的区别？
 
@@ -339,16 +520,217 @@ spring:
 
 ### 20. Sleuth + Zipkin 的工作原理？
 
-**Spring Cloud Sleuth**：提供链路追踪功能，为每个请求生成唯一的 Trace ID 和 Span ID。
+#### 核心概念
 
-**Zipkin**：链路追踪数据的收集和展示平台。
+**一次请求的完整结构：**
 
-**工作流程：**
-1. Sleuth 在请求入口生成 Trace ID
-2. 请求在服务间传递时，Sleuth 自动传递 Trace ID 和 Span ID
-3. 每个服务将链路数据发送到 Zipkin Server
-4. Zipkin Server 收集并存储链路数据
-5. 通过 Zipkin UI 查看完整的调用链路
+```
+Trace（一条完整链路，唯一 TraceId）
+│
+├── Span A  网关            [SpanId: 1, ParentId: null]    耗时 150ms
+│
+├── Span B  订单服务        [SpanId: 2, ParentId: 1]       耗时 120ms
+│   │
+│   ├── Span C  库存服务   [SpanId: 3, ParentId: 2]       耗时 50ms
+│   │
+│   └── Span D  支付服务   [SpanId: 4, ParentId: 2]       耗时 60ms
+│       │
+│       └── Span E  数据库 [SpanId: 5, ParentId: 4]       耗时 20ms
+```
+
+```
+TraceId  → 全局唯一，贯穿整条链路，用于找到一次请求的所有 Span
+SpanId   → 当前节点唯一标识
+ParentId → 父节点 SpanId，根节点为 null，用于还原调用树结构
+```
+
+---
+
+#### Annotation 四个关键时间点
+
+```
+cs (Client Send)      → 客户端发送请求
+sr (Server Receive)   → 服务端收到请求     sr - cs = 网络延迟
+ss (Server Send)      → 服务端发送响应     ss - sr = 服务处理耗时
+cr (Client Receive)   → 客户端收到响应     cr - cs = 总耗时
+
+时间轴：
+cs ────────── sr ──────────────── ss ────────── cr
+   网络延迟         服务处理耗时        网络延迟
+```
+
+---
+
+#### 完整工作流程
+
+```
+1. 请求进入网关
+   → 生成全局唯一 TraceId
+   → 创建根 Span（ParentId = null）
+   → 注入请求头：X-B3-TraceId / X-B3-SpanId
+
+2. 网关调用订单服务
+   → 创建新 Span（ParentId = 根SpanId）
+   → 请求头继续透传 TraceId + 新SpanId
+
+3. 订单服务调用库存/支付服务
+   → 同样创建新 Span，透传请求头
+
+4. 每个 Span 完成后
+   → 上报到收集器（Zipkin / Jaeger）
+   → 包含：TraceId, SpanId, ParentId, 耗时, 状态, 标签
+
+5. 收集器存储 + 前端展示调用链
+```
+
+---
+
+#### Spring Cloud Sleuth + Zipkin 实战
+
+**依赖**
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-sleuth</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-sleuth-zipkin</artifactId>
+</dependency>
+```
+
+**配置**
+```yaml
+spring:
+  zipkin:
+    base-url: http://localhost:9411  # Zipkin 地址
+  sleuth:
+    sampler:
+      probability: 1.0   # 采样率 1.0=100% 生产环境建议 0.1
+```
+
+**自动透传 TraceId，日志自动带上链路信息**
+```java
+@RestController
+public class OrderController {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderController.class);
+
+    @Autowired
+    private InventoryClient inventoryClient;
+
+    @GetMapping("/order/{id}")
+    public Order getOrder(@PathVariable Long id) {
+        // 日志自动附带 [appName, traceId, spanId]
+        // 输出示例：[order-service, 3e7b4f2a1c, 6f8d2a] 开始处理订单
+        log.info("开始处理订单: {}", id);
+
+        inventoryClient.check(id);  // TraceId 自动透传到库存服务
+        return orderService.get(id);
+    }
+}
+```
+
+**自定义 Span（手动埋点）**
+```java
+@Autowired
+private Tracer tracer;
+
+public void processOrder(Long id) {
+
+    // 手动创建 Span，追踪关键业务逻辑
+    Span span = tracer.nextSpan().name("process-order").start();
+
+    try (Tracer.SpanInScope ws = tracer.withSpanInScope(span)) {
+        span.tag("orderId", String.valueOf(id));  // 打标签
+        span.tag("userId", getCurrentUserId());
+
+        doProcess(id);
+
+    } catch (Exception e) {
+        span.tag("error", e.getMessage());        // 记录异常
+        throw e;
+    } finally {
+        span.finish();                            // 必须结束 Span
+    }
+}
+```
+
+---
+
+#### 采样策略
+
+```java
+// 全量采样（开发环境）
+@Bean
+public Sampler alwaysSampler() {
+    return Sampler.ALWAYS_SAMPLE;
+}
+
+// 按比例采样（生产环境，10%）
+@Bean
+public Sampler rateSampler() {
+    return RateLimitingSampler.create(10);  // 每秒10个
+}
+
+// 自定义采样（只采样慢请求）
+@Bean
+public Sampler customSampler() {
+    return (context) -> context.delay() > 1000;  // 超过1s才采样
+}
+```
+
+```
+采样率选择：
+  开发环境  →  100%  方便调试
+  生产环境  →  10%   流量大时避免性能损耗
+  大促活动  →  1%    超高并发场景
+```
+
+---
+
+#### 常见问题
+
+**TraceId 丢失场景及解决**
+
+```java
+// ❌ 新线程里 TraceId 丢失
+public void process() {
+    new Thread(() -> {
+        log.info("这里没有 TraceId");  // TraceId 断了
+    }).start();
+}
+
+// ✅ 用 Sleuth 提供的装饰器包装
+@Autowired
+private TraceableExecutorService traceableExecutorService;
+
+public void process() {
+    traceableExecutorService.submit(() -> {
+        log.info("TraceId 正常透传");  // ✅
+    });
+}
+
+// ✅ 或手动传递
+Span currentSpan = tracer.currentSpan();
+new Thread(tracer.currentTraceContext().wrap(() -> {
+    log.info("TraceId 正常透传");     // ✅
+})).start();
+```
+
+---
+
+#### 主流工具对比
+
+| | Zipkin | Jaeger | SkyWalking |
+|--|--------|--------|------------|
+| 开发者 | Twitter | Uber | Apache |
+| 接入方式 | 代码侵入 | 代码侵入 | 探针无侵入 |
+| 存储 | ES / MySQL | ES / Cassandra | ES / MySQL |
+| UI | 简单 | 中等 | 功能丰富 |
+| 适合场景 | Spring Cloud | 跨语言 | Java 生产首选 |
+
+> **生产环境推荐 SkyWalking**：Java Agent 探针方式，代码零侵入，UI 功能最完整，支持告警、拓扑图、性能分析。
 
 ## 九、Spring Cloud Alibaba 组件
 

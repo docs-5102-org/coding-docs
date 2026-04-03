@@ -35,17 +35,26 @@ public void businessMethod() {
 ```java
 @Service
 public class UserService {
-    
-    // 场景1：内部调用 - 事务会失效!
+
+    @Autowired
+    private UserMapper userMapper;
+
+    /**
+     * 场景1：外部直接调用 innerMethod ✅ 事务生效
+     * Controller → 代理对象.innerMethod() → 事务开启
+     */
+
+    /**
+     * 场景2：通过 outerMethod 间接调用 innerMethod ❌ 事务失效
+     * Controller → 代理对象.outerMethod() → this.innerMethod() → 事务不生效
+     */
     public void outerMethod() {
-        // 这里调用同类的事务方法,事务不会生效
-        this.innerMethod();
-        // innerMethod(); // @Transactional注解被忽略
+        // this 是原始对象，不是代理对象，事务失效
+        innerMethod();
     }
-    
+
     @Transactional
     public void innerMethod() {
-        // 事务失效!因为是通过this调用,绕过了代理对象
         userMapper.insert(user);
     }
 }
@@ -55,6 +64,23 @@ public class UserService {
 - Spring事务基于AOP代理实现
 - 内部调用使用的是`this`,不是代理对象
 - 代理对象才有事务增强功能
+
+**调用链对比**
+
+```
+✅ 事务生效:
+Controller
+  → UserService代理对象.innerMethod()
+      → 开启事务
+      → 原始对象.innerMethod()
+      → 提交/回滚事务
+
+❌ 事务失效:
+Controller
+  → UserService代理对象.outerMethod()
+      → 原始对象.outerMethod()        ← 代理逻辑到此结束
+          → this.innerMethod()        ← this 是原始对象，没有事务
+```
 
 #### 解决方案：
 

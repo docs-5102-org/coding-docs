@@ -9,19 +9,25 @@ date: 2025-11-28
 
 ## 自动装配中依赖检测的关键步骤
 
-**答案: 主要在第4和第5步**
+```
+@SpringBootApplication 启动
+         ↓
+@EnableAutoConfiguration 生效
+         ↓
+读取 spring.factories / AutoConfiguration.imports
+获得候选配置类列表（100+ 个）
+         ↓
+读取 spring-autoconfigure-metadata.properties   ← 预筛选
+做第一轮过滤（纯字符串比对，不加载类）
+候选类从 100+ 缩减到少数几个
+         ↓
+实例化剩余配置类（反射）
+         ↓
+@Conditional 注解精确判断                        ← 第二轮过滤
+         ↓
+向容器注入 Bean
 
-@SpringBootApplication启动
-    ↓
-@EnableAutoConfiguration生效
-    ↓
-AutoConfigurationImportSelector扫描spring.factories  ← 第3步：加载所有候选配置类(不管你有没有依赖)
-    ↓
-加载所有自动配置类(xxxAutoConfiguration)  ← 第4步：实例化配置类
-    ↓
-**根据@Conditional条件判断是否生效**  ← 👉 第5步：这里才真正检查你的依赖!
-    ↓
-向容器注入配置的Bean
+```
 
 ---
 
