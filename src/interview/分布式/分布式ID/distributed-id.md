@@ -29,11 +29,18 @@ date: 2025-11-28
 
 这个时候就需要生成**分布式 ID**了。
 
-![](https://oss.javaguide.cn/github/javaguide/system-design/distributed-system/id-after-the-sub-table-not-conflict.png)
+<img :src="$withBase('/assets/images/interview/distributed/id.png')" 
+  alt=""
+  width="800px" 
+  height="auto">
 
 ### 分布式 ID 需要满足哪些要求?
 
-![](https://oss.javaguide.cn/github/javaguide/system-design/distributed-system/distributed-id-requirements.png)
+- 全局唯一
+- 方便易用
+- 高可用
+- 高性能
+- 安全
 
 分布式 ID 作为分布式系统中必不可少的一环，很多地方都要用到分布式 ID。
 
@@ -100,7 +107,9 @@ COMMIT;
 
 数据库主键自增这种模式，每次获取 ID 都要访问一次数据库，ID 需求比较大的时候，肯定是不行的。
 
-如果我们可以批量获取，然后存在在内存里面，需要用到的时候，直接从内存里面拿就舒服了！这也就是我们说的 **基于数据库的号段模式来生成分布式 ID。**
+**核心思路**
+
+不再每次都访问数据库获取一个 ID，而是一次性从数据库批量申请一段 ID，放到内存里慢慢用，用完了再去申请下一段。这就是 **基于数据库的号段模式来生成分布式 ID。**
 
 数据库的号段模式也是目前比较主流的一种分布式 ID 生成方式。像滴滴开源的[Tinyid](https://github.com/didi/tinyid/wiki/tinyid原理介绍) 就是基于这种方式来做的。不过，TinyId 使用了双号段缓存、增加多 db 支持等方式来进一步优化。
 
@@ -119,55 +128,79 @@ CREATE TABLE `sequence_id_generator` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
-`current_max_id` 字段和`step`字段主要用于获取批量 ID，获取的批量 id 为：`current_max_id ~ current_max_id+step`。
+表结构解析
 
-![数据库号段模式](https://oss.javaguide.cn/github/javaguide/system-design/distributed-system/database-number-segment-mode.png)
+```
+current_max_id  -- 当前已分配出去的最大ID，下次从这里继续往后取
+step            -- 每次申请的号段长度，比如 1000
+version         -- 乐观锁版本号，防止并发重复申请
+biz_type        -- 不同业务用不同行，互不干扰（订单/用户/商品各一行）
+```
 
-`version` 字段主要用于解决并发问题（乐观锁）,`biz_type` 主要用于表示业务类型。
+完整流程
 
-**2. 先插入一行数据。**
+<img :src="$withBase('/assets/images/interview/distributed/db_id.png')" 
+  alt=""
+  width="800px" 
+  height="auto">
+
+关键 SQL
 
 ```sql
-INSERT INTO `sequence_id_generator` (`id`, `current_max_id`, `step`, `version`, `biz_type`)
-VALUES
- (1, 0, 100, 0, 101);
+-- 申请号段（乐观锁）
+UPDATE sequence_id_generator
+SET current_max_id = current_max_id + step,
+    version = version + 1
+WHERE version = #{version}
+  AND biz_type = #{bizType};
+
+-- 查询刚申请的号段
+SELECT current_max_id, step FROM sequence_id_generator
+WHERE biz_type = #{bizType};
+
+-- 内存中可用范围：
+-- [current_max_id - step + 1,  current_max_id]
 ```
 
-**3. 通过 SELECT 获取指定业务下的批量唯一 ID**
+---
 
-```sql
-SELECT `current_max_id`, `step`,`version` FROM `sequence_id_generator` where `biz_type` = 101
+举个具体例子
+
+```
+初始状态：current_max_id = 1000，step = 1000，version = 1
+
+第一次申请：
+  UPDATE 成功，version 变为 2
+  current_max_id 变为 2000
+  内存拿到号段：[1001, 2000]
+  业务依次使用：1001, 1002, 1003 ... 2000
+
+第二次申请（内存用完后）：
+  UPDATE 成功，version 变为 3
+  current_max_id 变为 3000
+  内存拿到号段：[2001, 3000]
 ```
 
-结果：
+---
 
-```plain
-id current_max_id step version biz_type
-1 0 100 0 101
+**双 Buffer 优化**
+
+单 Buffer 有一个问题：号段用完的瞬间需要同步等待数据库，有短暂延迟。
+
 ```
+Buffer A（当前使用）  [1001 ~ 2000]  ←  正在消费
+Buffer B（提前加载）  [2001 ~ 3000]  ←  用到 20% 时异步预加载
 
-**4. 不够用的话，更新之后重新 SELECT 即可。**
-
-```sql
-UPDATE sequence_id_generator SET current_max_id = 0+100, version=version+1 WHERE version = 0  AND `biz_type` = 101
-SELECT `current_max_id`, `step`,`version` FROM `sequence_id_generator` where `biz_type` = 101
+Buffer A 用完 → 无缝切换到 Buffer B → 同时异步加载 Buffer C
+始终保持有一个备用号段，永远不会因为等数据库而卡顿
 ```
-
-结果：
-
-```plain
-id current_max_id step version biz_type
-1 100 100 1 101
-```
-
-相比于数据库主键自增的方式，**数据库的号段模式对于数据库的访问次数更少，数据库压力更小。**
-
-另外，为了避免单点问题，你可以从使用主从模式来提高可用性。
 
 **数据库号段模式的优缺点:**
 
 - **优点**：ID 有序递增、存储消耗空间小
-- **缺点**：存在数据库单点问题（可以使用数据库集群解决，不过增加了复杂度）、ID 没有具体业务含义、安全问题（比如根据订单 ID 的递增规律就能推算出每天的订单量，商业机密啊！ ）
+- **缺点**：
+  - 存在数据库单点问题（可以使用数据库集群解决，不过增加了复杂度）、ID 没有具体业务含义、安全问题（比如根据订单 ID 的递增规律就能推算出每天的订单量，商业机密啊！ ）
+  - 服务重启时内存号段丢失，会造成 ID 不连续跳跃（比如用到 1500 重启，下次从 2001 开始）；强依赖数据库，DB 挂了就无法申请新号段（但内存里的还能用一段时间）
 
 #### NoSQL
 
@@ -276,7 +309,10 @@ int version = uuid.version();// 4
 
 Snowflake 是 Twitter 开源的分布式 ID 生成算法。Snowflake 由 64 bit 的二进制数字组成，这 64bit 的二进制被分成了几部分，每一部分存储的数据都有特定的含义：
 
-![Snowflake 组成](https://oss.javaguide.cn/github/javaguide/system-design/distributed-system/snowflake-distributed-id-schematic-diagram.png)
+<img :src="$withBase('/assets/images/interview/distributed/snowflake.png')" 
+  alt="Snowflake 组成"
+  width="800px" 
+  height="auto">
 
 - **sign(1bit)**:符号位（标识正负），始终为 0，代表生成的 ID 为正数。
 - **timestamp (41 bits)**:一共 41 位，用来表示时间戳，单位是毫秒，可以支撑 2 ^41 毫秒（约 69 年）
@@ -305,7 +341,10 @@ Snowflake 是 Twitter 开源的分布式 ID 生成算法。Snowflake 由 64 bit 
 
 不过，UidGenerator 对 Snowflake(雪花算法)进行了改进，生成的唯一 ID 组成如下：
 
-![UidGenerator 生成的 ID 组成](https://oss.javaguide.cn/github/javaguide/system-design/distributed-system/uidgenerator-distributed-id-schematic-diagram.png)
+<img :src="$withBase('/assets/images/interview/distributed/baidu_uid.png')" 
+  alt="UidGenerator 生成的 ID 组成"
+  width="800px" 
+  height="auto">
 
 - **sign(1bit)**:符号位（标识正负），始终为 0，代表生成的 ID 为正数。
 - **delta seconds (28 bits)**:当前时间，相对于时间基点"2016-05-20"的增量值，单位：秒，最多可支持约 8.7 年
@@ -380,7 +419,10 @@ IdGenerator 有如下特点：
 
 IdGenerator 生成的唯一 ID 组成如下：
 
-![IdGenerator 生成的 ID 组成](https://oss.javaguide.cn/github/javaguide/system-design/distributed-system/idgenerator-distributed-id-schematic-diagram.png)
+<img :src="$withBase('/assets/images/interview/distributed/id_generator.png')" 
+  alt="IdGenerator 生成的 ID 组成"
+  width="800px" 
+  height="auto">
 
 - **timestamp (位数不固定)**:时间差，是生成 ID 时的系统时间减去 BaseTime(基础时间，也称基点时间、原点时间、纪元时间，默认值为 2020 年) 的总时间差（毫秒单位）。初始为 5bits，随着运行时间而增加。如果觉得默认值太老，你可以重新设置，不过要注意，这个值以后最好不变。
 - **worker id (默认 6 bits)**:机器 id，机器码，最重要参数，是区分不同机器或不同应用的唯一 ID，最大值由 `WorkerIdBitLength`（默认 6）限定。如果一台服务器部署多个独立服务，需要为每个服务指定不同的 WorkerId。
