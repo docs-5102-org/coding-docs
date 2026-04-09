@@ -20,6 +20,10 @@
   width="800px" 
   height="auto">
 
+## 文件下载
+
+文件需要通过 <a :href="$withBase('./xxx/xxx.pdf')">下载 PDF</a> 这种方式来动态引入
+
 ## 修改样式
 
 * `src/.vuepress/styles/config.scss` [修改主题色]

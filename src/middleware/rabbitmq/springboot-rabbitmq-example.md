@@ -96,14 +96,15 @@ spring:
     port: 5672
     username: guest
     password: guest
-    # 开启发送确认
+    # 开启发送异步确认，保证消息的可靠性
     publisher-confirm-type: correlated
     # 开启发送失败退回
     publisher-returns: true
     listener:
       simple:
-        # 手动确认消息
+        # 手动ACK确认消息
         acknowledge-mode: manual
+        prefetch: 1                # 每次只取一条，处理完再取下一条
         # 消费者最小数量
         concurrency: 1
         # 消费者最大数量
@@ -120,6 +121,20 @@ spring:
 | `publisher-confirm-type` | 发布确认类型 | `none`, `simple`, `correlated` |
 | `publisher-returns` | 是否启用发布返回 | `true`, `false` |
 | `prefetch` | 预取数量 | 整数,建议1-10 |
+
+
+:::tip
+
+# 开启 Confirm 机制（确认消息到达 Exchange）
+yamlspring:
+  rabbitmq:
+    publisher-confirm-type: correlated  # 异步确认
+    publisher-returns: true             # 开启 Return 机制
+    template:
+      mandatory: true                   # 消息路由失败时返回，而不是丢弃
+
+:::
+
 
 ---
 
@@ -169,12 +184,14 @@ public class RabbitMQConfig {
     }
 
     // ========== 4. 声明业务交换机 ==========
+    // Exchange 持久化（durable = true）
     @Bean
     public DirectExchange businessExchange() {
         return new DirectExchange(BUSINESS_EXCHANGE, true, false);
     }
 
     // ========== 5. 声明业务队列(配置死信交换机) ==========
+    // Queue 持久化（durable = true）
     @Bean
     public Queue businessQueue() {
         return QueueBuilder
@@ -258,6 +275,22 @@ public class MessageProducer {
                     headers.forEach((key, value) -> 
                         msg.getMessageProperties().setHeader(key, value)
                     );
+                    return msg;
+                }
+        );
+    }
+
+    /**
+     * 发送消息时设置持久化
+     */
+    public void sendMessageWitDeliveryMode(String message, long ttl) {
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.BUSINESS_EXCHANGE,
+                RabbitMQConfig.BUSINESS_ROUTING_KEY,
+                message,
+                msg -> {
+                    // 设置消息持久化，Broker 重启后消息不丢失
+                    msg.getMessageProperties().setDeliveryMode(MessageDeliveryMode.PERSISTENT);
                     return msg;
                 }
         );
