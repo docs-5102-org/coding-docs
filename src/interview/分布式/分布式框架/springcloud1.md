@@ -1,11 +1,11 @@
 ---
-title: SpringCloud 面试题
+title: SpringCloud 面试题（上）
 category:
   - SpringCloud 面试题
 date: 2025-11-28
 ---
 
-# SpringCloud 面试题
+# SpringCloud 面试题（上）
 
 ## 一、基础概念
 
@@ -588,6 +588,9 @@ cs ────────── sr ──────────────�
 #### Spring Cloud Sleuth + Zipkin 实战
 
 **依赖**
+
+Spring Boot 2.x → 用 Sleuth
+
 ```xml
 <dependency>
     <groupId>org.springframework.cloud</groupId>
@@ -599,7 +602,25 @@ cs ────────── sr ──────────────�
 </dependency>
 ```
 
+Spring Boot 3.x → Sleuth 已废弃，改用 Micrometer Tracing
+
+```xml
+
+<!-- Sleuth 不支持 Spring Boot 3，要换这个 -->
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-tracing-bridge-brave</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.zipkin.reporter2</groupId>
+    <artifactId>zipkin-reporter-brave</artifactId>
+</dependency>
+```
+
 **配置**
+
+Spring Boot 2.x
+
 ```yaml
 spring:
   zipkin:
@@ -607,6 +628,18 @@ spring:
   sleuth:
     sampler:
       probability: 1.0   # 采样率 1.0=100% 生产环境建议 0.1
+```
+
+Spring Boot 3.x → 配置key全部变了
+
+```yaml
+management:
+  tracing:
+    sampling:
+      probability: 1.0      # 采样率，原来是 sleuth.sampler.probability
+spring:
+  zipkin:
+    base-url: http://localhost:9411  # Zipkin 地址
 ```
 
 **自动透传 TraceId，日志自动带上链路信息**
@@ -632,6 +665,7 @@ public class OrderController {
 ```
 
 **自定义 Span（手动埋点）**
+
 ```java
 @Autowired
 private Tracer tracer;
@@ -655,6 +689,40 @@ public void processOrder(Long id) {
     }
 }
 ```
+
+---
+
+**在 Zipkin 上看到的效果：**
+
+```
+traceId: 3e7b4f2a1c
+│
+├─ order-service  /order/1          100ms   ← 自动生成的根 Span
+│   │
+│   └─ process-order                80ms    ← 你手动创建的 Span
+│       tags:
+│           orderId = 1
+│           userId  = u001
+│
+└─ inventory-service  /check/1      20ms    ← Feign 调用自动生成
+```
+
+---
+
+**什么时候需要手动创建 Span：**
+
+```
+自动追踪（不用写代码）：
+    HTTP 请求、Feign 调用、数据库查询
+
+手动创建 Span：
+    ├─ 关键业务逻辑（如支付、风控）
+    ├─ 消息队列消费
+    ├─ 定时任务
+    └─ 需要打自定义标签的场景
+```
+
+打开 `http://localhost:9411` 就能在 Zipkin 界面看到完整链路。
 
 ---
 
@@ -732,6 +800,11 @@ new Thread(tracer.currentTraceContext().wrap(() -> {
 
 > **生产环境推荐 SkyWalking**：Java Agent 探针方式，代码零侵入，UI 功能最完整，支持告警、拓扑图、性能分析。
 
+## SpringBoot + SkyWalking 实战
+
+- [SpringBoot 2 + SkyWalking 实战方案](springboot2-skywalking.md)
+- [SpringBoot 3 + SkyWalking 实战方案](springboot3-skywalking.md)
+
 ## 九、Spring Cloud Alibaba 组件
 
 ### 21. Spring Cloud Alibaba 包含哪些组件?
@@ -796,6 +869,40 @@ new Thread(tracer.currentTraceContext().wrap(() -> {
 5. **连接池优化**：合理配置连接池大小
 6. **使用 gRPC**：相比 HTTP 性能更好
 7. **服务合并**：避免过度拆分导致的性能损耗
+
+## 十一、SpringCloud 最佳组合
+
+JDK1.8
+
+```
+Spring Boot 2.7.x (JDK 1.8)
+└── Spring Cloud Alibaba 2021.0.x
+    ├── 注册/配置  → Nacos 1.4.x ~ 2.0.x
+    ├── 网关       → Spring Cloud Gateway (2021.x)
+    ├── 调用       → OpenFeign / Dubbo 2.7.x
+    ├── 负载均衡   → Spring Cloud LoadBalancer / Ribbon
+    ├── 熔断限流   → Sentinel 1.8.x
+    ├── 分布式事务 → Seata 1.6.x
+    ├── 消息       → RocketMQ 4.x / Kafka
+    ├── 链路追踪   → SkyWalking / Zipkin
+    └── ORM        → MyBatis-Plus 3.5.x
+```
+
+JDK17+
+
+```
+Spring Boot 3.x (JDK 17+)
+└── Spring Cloud Alibaba
+    ├── 注册/配置  → Nacos 2.x
+    ├── 网关       → Spring Cloud Gateway
+    ├── 调用       → OpenFeign / Dubbo 3.x
+    ├── 负载均衡   → Spring Cloud LoadBalancer
+    ├── 熔断限流   → Sentinel
+    ├── 分布式事务 → Seata
+    ├── 消息       → RocketMQ / Kafka
+    ├── 链路追踪   → SkyWalking / Zipkin
+    └── ORM        → MyBatis-Plus
+```
 
 ---
 

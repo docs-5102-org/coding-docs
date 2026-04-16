@@ -6,7 +6,51 @@ export default sidebar({
   ],
   "/article/": false, // 隐藏侧边栏
   "/interview/": "structure",
-  "/php/":[
+  // "/interview/网络/": [
+  //   {
+  //     text: "网络基础篇", // 分组
+  //     children: [
+  //       {
+  //         text: "基础篇",
+  //         prefix: "network/1_base/",
+  //         collapsible: true,
+  //         children: "structure",  // 自动扫描子目录文件
+  //       },
+  //       {
+  //         text: "应用篇",
+  //         prefix: "network/2_http/",
+  //         collapsible: true,
+  //         children: "structure",
+  //       },
+  //       {
+  //         text: "传输层",
+  //         prefix: "network/3_tcp/",
+  //         collapsible: true,
+  //         children: "structure",
+  //       },
+  //       {
+  //         text: "网络层",
+  //         prefix: "network/4_ip/",
+  //         collapsible: true,
+  //         children: "structure",
+  //       },
+  //       {
+  //         text: "学习心得",
+  //         prefix: "network/5_learn/",
+  //         collapsible: true,
+  //         children: "structure",
+  //       },
+  //     ]
+  //   },
+  //   {
+  //     text: "面试题",
+  //     children: [
+  //       { text: "计算机网络基础面试(上)", link: "计算机网络基础面试(上)" },
+  //       { text: "计算机网络基础面试(下)", link: "计算机网络基础面试(下)" },
+  //     ],
+  //   },
+  // ],
+  "/php/": [
     {
       text: "入门教程",
       link: "intro",
@@ -42,7 +86,7 @@ export default sidebar({
     "podt"
   ],
   "/go/": "structure",
-  "/api-design/":[
+  "/api-design/": [
     {
       text: "RESTful API 设计",
       link: "restful-api",
@@ -53,7 +97,7 @@ export default sidebar({
     }
   ],
   // Java基础知识
-  "/java/":[
+  "/java/": [
     {
       text: "Java 教程资料",
       link: "intro",
@@ -91,7 +135,7 @@ export default sidebar({
             "ve-starter",
           ]
         },
-      ]  
+      ]
     },
     {
       text: "Java 爬虫框架", // 分组
@@ -105,7 +149,7 @@ export default sidebar({
             "gecco",
           ]
         },
-      ]  
+      ]
     },
     {
       text: "Java Web框架", // 分组
@@ -263,7 +307,7 @@ export default sidebar({
             "spring-cloud-versions",
           ]
         },
-      ]  
+      ]
     },
     {
       text: "Java 安全认证框架", // 分组
@@ -277,7 +321,7 @@ export default sidebar({
             "shiro-starter"
           ],
         },
-      ]  
+      ]
     },
     {
       text: "Java 持久层框架", // 分组
@@ -324,8 +368,8 @@ export default sidebar({
             "mybatis-sharejdbc"
           ]
         },
-        
-      ]  
+
+      ]
     },
     {
       text: "Java JVM", // 分组
@@ -339,7 +383,7 @@ export default sidebar({
         "stack",
         "tools",
         "urlclassloader"
-      ]  
+      ]
     },
     {
       text: "Java 注解", // 分组
@@ -350,7 +394,7 @@ export default sidebar({
           icon: "puzzle-piece",
           link: "/java/annotation/starter"
         }
-      ]  
+      ]
     },
     {
       text: "Java 正则表达式", // 分组
@@ -386,23 +430,23 @@ export default sidebar({
           icon: "puzzle-piece",
           link: "/java/regex/notepad-regex"
         },
-      ]  
+      ]
     },
     {
       text: "Java 日志", // 分组
       collapsible: true,
       children: [
-        { 
-          text: 'Log4j', 
-          link: '/java/log/log4j' 
+        {
+          text: 'Log4j',
+          link: '/java/log/log4j'
         },
-        { 
-          text: 'Logback', 
-          link:'/java/log/logback'
+        {
+          text: 'Logback',
+          link: '/java/log/logback'
         },
-        { 
-          text: 'JUL', 
-          link:'/java/log/jul'
+        {
+          text: 'JUL',
+          link: '/java/log/jul'
         },
       ]
     },
@@ -419,7 +463,7 @@ export default sidebar({
             "quartz-springboot"
           ]
         },
-      ]  
+      ]
     },
     {
       text: "Java Web容器", // 分组
@@ -451,7 +495,7 @@ export default sidebar({
             "tomcat-problem"
           ]
         }
-      ]  
+      ]
     },
   ],
   //# Java 8 专用侧边栏
@@ -695,7 +739,7 @@ export default sidebar({
           icon: "puzzle-piece",
           link: "/java-concurrent/thread/safe-stop"
         },
-      ]  
+      ]
     },
     {
       text: "Java 并发编程", // 分组
@@ -817,7 +861,7 @@ export default sidebar({
           icon: "puzzle-piece",
           link: "/java-concurrent/concurrent/reference-manual"
         }
-      ]  
+      ]
     },
     {
       text: "Java 阻塞队列", // 分组
@@ -837,7 +881,7 @@ export default sidebar({
           icon: "puzzle-piece",
           link: "/java-concurrent/queue/blocking-queue-application"
         }
-      ]  
+      ]
     }
   ],
 
@@ -942,7 +986,7 @@ export default sidebar({
             "ffmpeg-java"
           ]
         },
-      ]  
+      ]
     },
     {
       text: "图像", // 分组
@@ -956,7 +1000,7 @@ export default sidebar({
             "imagemagick-starter"
           ]
         },
-      ]  
+      ]
     },
     {
       text: "电子书解析", // 分组
@@ -971,7 +1015,7 @@ export default sidebar({
             "epub-encrypt"
           ]
         },
-      ]  
+      ]
     },
     {
       text: "网络协议与通信", // 分组
@@ -985,7 +1029,7 @@ export default sidebar({
             "websocket-starter",
           ]
         },
-      ]  
+      ]
     },
     {
       text: "富文本工具", // 分组
@@ -995,7 +1039,7 @@ export default sidebar({
           icon: "puzzle-piece",
           link: "/tools/richtext/ueditor"
         },
-      ]  
+      ]
     },
 
     {
@@ -1006,7 +1050,7 @@ export default sidebar({
           icon: "puzzle-piece",
           link: "/tools/auth/justauth"
         },
-      ]  
+      ]
     },
 
     {
@@ -1046,7 +1090,7 @@ export default sidebar({
             "starter",
           ]
         },
-      ]  
+      ]
     },
     {
       text: "开发工具", // 分组
@@ -1109,7 +1153,7 @@ export default sidebar({
           icon: "puzzle-piece",
           link: "/tools/notebook/markdown"
         },
-      ]  
+      ]
     },
     {
       text: "测试工具", // 分组
@@ -1124,7 +1168,7 @@ export default sidebar({
             "jmeter-simple",
           ]
         },
-      ]  
+      ]
     },
     {
       text: "其他工具", // 分组
@@ -1139,52 +1183,52 @@ export default sidebar({
           icon: "puzzle-piece",
           link: "/tools/jwt"
         },
-      ]  
+      ]
     },
   ],
 
-  "/store/":[
+  "/store/": [
     {
       text: "数据库",
       icon: "file-lines",
       prefix: "database/",
       collapsible: true,
       children: [
-          {
-            text: "Mysql",
-            icon: "file-lines",
-            prefix: "mysql/",
-            collapsible: true,
-            children: "structure",
-          },
-          {
-            text: "Oracle",
-            icon: "file-lines",
-            prefix: "oracle/",
-            collapsible: true,
-            children: "structure",
-          },
-          {
-            text: "Mongodb",
-            icon: "file-lines",
-            prefix: "Mongodb/",
-            collapsible: true,
-            children: "structure",
-          },
-          {
-            text: "SqlServer",
-            icon: "file-lines",
-            prefix: "sqlserver/",
-            collapsible: true,
-            children: "structure",
-          },
-          {
-            text: "其他",
-            icon: "file-lines",
-            prefix: "其他/",
-            collapsible: true,
-            children: "structure",
-          },
+        {
+          text: "Mysql",
+          icon: "file-lines",
+          prefix: "mysql/",
+          collapsible: true,
+          children: "structure",
+        },
+        {
+          text: "Oracle",
+          icon: "file-lines",
+          prefix: "oracle/",
+          collapsible: true,
+          children: "structure",
+        },
+        {
+          text: "Mongodb",
+          icon: "file-lines",
+          prefix: "Mongodb/",
+          collapsible: true,
+          children: "structure",
+        },
+        {
+          text: "SqlServer",
+          icon: "file-lines",
+          prefix: "sqlserver/",
+          collapsible: true,
+          children: "structure",
+        },
+        {
+          text: "其他",
+          icon: "file-lines",
+          prefix: "其他/",
+          collapsible: true,
+          children: "structure",
+        },
       ],
     },
     {
@@ -1192,17 +1236,17 @@ export default sidebar({
       icon: "file-lines",
       collapsible: true,
       children: [
-          {
-            text: "Minio",
-            icon: "file-lines",
-            prefix: "minio/",
-            collapsible: true,
-            children: "structure",
-          },
+        {
+          text: "Minio",
+          icon: "file-lines",
+          prefix: "minio/",
+          collapsible: true,
+          children: "structure",
+        },
       ],
     },
   ],
-  "/game-development/":[
+  "/game-development/": [
     {
       text: "Unity",
       link: "/game-development/unity/unity-starter",

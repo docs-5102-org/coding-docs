@@ -234,10 +234,7 @@ Pipeline 中每个节点的处理单元，负责对经过的 I/O 事件或操作
 
 #### ByteBuf (字节容器)
 
-<img :src="$withBase('/assets/images/interview/bytebuf.png')" 
-  alt="bytebuf"
-  width="800px" 
-  height="auto">
+c
 
 ByteBuf是Netty 提供的字节容器，内部是一个字节数组，对 Java NIO ByteBuffer 进行了封装和抽象，使用更简单，功能更强大
 
