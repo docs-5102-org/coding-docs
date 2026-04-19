@@ -183,7 +183,8 @@ Dubbo3 仍然保持 2.x 的经典架构，主要职责是解决微服务进程�
 > 🆕 **Dubbo 3.x 新变化**：
 > - 自研 Triple 协议：底层基于 Netty 实现的 HTTP/2 传输，100% 兼容 gRPC 协议。
 > - 多协议共存：除了传统的 Dubbo 协议（TCP），还支持原生 gRPC-Java、REST 和 Hessian2 等。
-> - 高性能优化：支持开启 Netty 的 Epoll 模式以在 Linux 环境下获得更高吞吐。
+> - 高性能优化：支持开启 Netty 的 [Epoll](../../../article\netty-epoll.md) 模式以在 Linux 环境下获得更高吞吐。
+
 
 ---
 

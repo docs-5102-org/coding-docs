@@ -166,6 +166,8 @@ CAP 理论和 BASE 理论是分布式领域非常非常重要的两个理论。�
 
 像 **2PC**、**3PC** 就属于刚性事务。
 
+> [TCC 和 2PC/3PC 的关系](../../..\article\tcc-vs-23pc.md)
+
 ---
 
 ## 分布式事务解决方案
@@ -288,7 +290,11 @@ TCC 属于目前比较火的一种柔性事务解决方案。TCC 这个概念最
 
 1. **ByteTCC**：基于 Try-Confirm-Cancel（TCC）机制的分布式事务管理器的实现
 
+> - GitHub：https://github.com/changmingxie/tcc-transaction
+
 2. **Seata**：一款开源的分布式事务解决方案，致力于在微服务架构下提供高性能和简单易用的分布式事务服务
+
+> GitHub：https://github.com/apache/incubator-seata
 
 3. **Hmily**：金融级分布式事务解决方案
 
@@ -388,5 +394,5 @@ Saga 属于长事务解决方案，其核心思想是将长事务拆分为多个
 - [微服务中的分布式事务方案](https://jeremyxu2010.github.io/2020/03/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E4%B8%AD%E7%9A%84%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E6%96%B9%E6%A1%88/#heading-3)
 - [消息队列之事务消息，RocketMQ 和 Kafka 是如何做的？](https://juejin.cn/post/6867040340797292558)
 - [聊一聊分布式事务](https://mp.weixin.qq.com/s?__biz=Mzg5Mjc3MjIyMA==&mid=2247544315&idx=1&sn=1918fe3e5435e2ffd88aa29b76c2e35b&source=41&poc_token=HMtQNmmjBadZeaQHRySOkoBHia96RUW-UENpkfMj)
-
+- [分布式事务常见面试题总结](https://github.com/tuonioooo/java_interview_guide_PDF/blob/main/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E5%B8%B8%E8%A7%81%E9%9D%A2%E8%AF%95%E9%A2%98%E6%80%BB%E7%BB%93%20%C2%B7%20.pdf)
 ---
