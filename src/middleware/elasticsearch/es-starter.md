@@ -133,7 +133,65 @@ curl -X GET "localhost:9200/_nodes?pretty"
 
 # 索引列表
 curl -X GET "localhost:9200/_cat/indices?v"
+
+# 查询所有文档
+curl -X GET "localhost:9200/my_index/_search" -H 'Content-Type: application/json' -d'
+{
+  "query": {
+    "match_all": {}
+  },
+  "size": 10,
+  "from": 0
+}'
+
+# 精确匹配
+curl -X GET "localhost:9200/my_index/_search" -H 'Content-Type: application/json' -d'
+{
+  "query": {
+    "term": {
+      "author": "张三"
+    }
+  }
+}'
 ```
+
+:::tip
+
+在 Elasticsearch 中，`pretty` 是一个查询参数，用来使返回的 JSON 格式的响应更加可读和美观。具体来说，`pretty` 参数会使响应中的 JSON 数据进行格式化，例如添加换行符和缩进，以便于人类阅读。
+
+例如，执行以下请求：
+
+```bash
+curl -X GET "localhost:9200/_cluster/health?pretty"
+```
+
+返回的结果可能是这样的：
+
+```json
+{
+  "cluster_name" : "elasticsearch",
+  "status" : "green",
+  "timed_out" : false,
+  "number_of_nodes" : 3,
+  "number_of_data_nodes" : 3,
+  "active_primary_shards" : 5,
+  "active_shards" : 10,
+  "relocating_shards" : 0,
+  "initializing_shards" : 0,
+  "unassigned_shards" : 0,
+  "delayed_unassigned_shards" : 0,
+  "number_of_pending_tasks" : 0,
+  "number_of_in_flight_fetch" : 0,
+  "task_max_waiting_in_queue_millis" : 0,
+  "active_shards_percent_as_number" : 100.0
+}
+```
+
+没有 `pretty` 参数的请求会返回一个没有换行和缩进的紧凑格式，这对于机器处理非常高效，但对于人类阅读就不太友好。
+
+简而言之，`pretty` 参数就是让返回的 JSON 数据更易于阅读。
+
+:::
 
 ### 2. 索引操作
 ```bash
@@ -201,8 +259,14 @@ GET /my_index/_search
 GET /my_index/_search
 {
   "query": {
-    "term": {
-      "author": "张三"
+    "bool": {
+      "filter": [
+        {
+          "term": {
+            "author.keyword": "张三"
+          }
+        }
+      ]
     }
   }
 }
@@ -228,6 +292,8 @@ GET /my_index/_search
   }
 }
 ```
+
+> 用 Kibana DSL 格式替代 curl，更简洁易读，实际发请求时换回 curl 即可
 
 ### 2. 复合查询
 ```json
@@ -315,6 +381,27 @@ GET /sales/_search
 }
 ```
 
+**说明：**
+
+```
+GET /{索引名}/_search
+         ↑
+       sales 就是这里
+```
+
+- **`sales`** — 索引名，相当于关系型数据库里的"表名"
+- **`_search`** — ES 的搜索端点
+- **`size: 0`** — 不返回原始文档，只返回聚合结果（纯统计场景下的标准写法，省流量）
+- **`aggs（aggregations）`** — 聚合操作，这里同时算了 `price` 字段的均值、最大、最小值
+
+如果你想同时查多个索引，ES 也支持：
+
+```
+GET /sales,orders/_search        # 多个索引
+GET /sales-*/_search             # 通配符匹配
+GET /_search                     # 所有索引
+```
+
 ### 2. 桶聚合
 ```json
 # 按类别分组
@@ -346,6 +433,46 @@ GET /logs/_search
 }
 ```
 
+**按类别分组**
+
+```
+"terms": {
+  "field": "category.keyword",   # 用 keyword 字段，保证不分词、精确分组
+  "size": 10                     # 返回 top 10 个分组（按文档数降序）
+}
+```
+
+- `terms` 聚合 ≈ SQL 的 `GROUP BY category`
+- `size` 控制返回几个桶，不是文档数量，默认是 10
+- 结果里每个桶会带 `doc_count`，表示该类别下有多少文档
+
+---
+
+**日期直方图**
+
+```
+"date_histogram": {
+  "field": "@timestamp",          # 按这个时间字段分桶
+  "calendar_interval": "day"      # 每天一个桶
+}
+```
+
+- `date_histogram` ≈ SQL 的 `GROUP BY DATE(timestamp)`
+- `calendar_interval` 可选值：`minute` / `hour` / `day` / `week` / `month` / `year`
+- 会自动补全没有数据的日期桶（空桶），保证时间连续性
+
+---
+
+**两者对比**
+
+| | terms | date_histogram |
+|---|---|---|
+| 用途 | 按离散值分组 | 按时间区间分组 |
+| 类比 SQL | `GROUP BY category` | `GROUP BY DATE(ts)` |
+| 桶数量 | 由 `size` 控制 | 由时间范围决定 |
+| 典型场景 | 品类统计、标签统计 | 趋势图、日志时序分析 |
+
+
 ### 3. 嵌套聚合
 ```json
 GET /sales/_search
@@ -363,6 +490,69 @@ GET /sales/_search
   }
 }
 ```
+
+**说明：**
+
+这是一个**两层聚合**，外层分组、内层统计：
+
+```json
+GET /sales/_search
+{
+  "size": 0,
+  "aggs": {
+    "categories": {               ← 第一层：按 category 分组
+      "terms": {"field": "category.keyword"},
+      "aggs": {
+        "avg_price": {            ← 第二层：在每个分组内算均价
+          "avg": {"field": "price"}
+        }
+      }
+    }
+  }
+}
+```
+
+**类比 SQL 就是：**
+```sql
+SELECT category, AVG(price)
+FROM sales
+GROUP BY category
+```
+
+---
+
+**返回结果结构大概长这样：**
+
+```json
+{
+  "aggregations": {
+    "categories": {
+      "buckets": [
+        {
+          "key": "电子产品",        ← 分组名
+          "doc_count": 120,        ← 该分组文档数
+          "avg_price": {
+            "value": 3299.5        ← 该分组的均价
+          }
+        },
+        {
+          "key": "服装",
+          "doc_count": 85,
+          "avg_price": {
+            "value": 199.0
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+---
+
+**核心逻辑：** 内层 `aggs` 的计算范围 = 外层当前桶的文档，而不是全部数据。所以"电子产品"的均价只算电子产品那 120 条，"服装"的均价只算服装那 85 条，互不干扰。
+
+还可以继续嵌套第三层，比如在每个类别内再按月份做时间分组，ES 对嵌套层数没有硬限制，但层数越深性能开销越大。
 
 ## 索引管理
 
@@ -405,6 +595,76 @@ PUT /products/_mapping
   }
 }
 ```
+
+**说明：**
+
+```json
+"properties": {
+  "title": {
+    "type": "text",
+    "analyzer": "standard"   ← 全文检索字段，用标准分词器（按空格/标点切词）
+  },
+  "price": {
+    "type": "double"         ← 浮点数，适合金额
+  },
+  "category": {
+    "type": "keyword"        ← 精确匹配，不分词，适合分组/过滤
+  },
+  "description": {
+    "type": "text",
+    "index": false           ← 不建索引，只存储，不能被搜索（省空间）
+  },
+  "created_at": {
+    "type": "date",
+    "format": "yyyy-MM-dd"   ← 限定日期格式，写入时会做格式校验
+  }
+}
+```
+
+**各字段类型对比：**
+
+| 字段 | 类型 | 能全文搜索 | 能精确过滤/分组 | 能排序/聚合 |
+|---|---|---|---|---|
+| title | text | ✅ | ❌ | ❌ |
+| price | double | ❌ | ✅ | ✅ |
+| category | keyword | ❌ | ✅ | ✅ |
+| description | text + index:false | ❌ | ❌ | ❌ |
+| created_at | date | ❌ | ✅ | ✅ |
+
+---
+
+**添加字段映射**
+
+```json
+PUT /products/_mapping
+{
+  "properties": {
+    "tags": {"type": "keyword"}   ← 给已有索引追加新字段
+  }
+}
+```
+
+注意两个限制：
+- **只能新增字段，不能修改已有字段类型**，改类型必须重建索引
+- **不能删除字段**，删字段同样需要重建索引
+
+---
+
+**一个常见的实用技巧**，`title` 这类字段经常需要既能全文搜索、又能精确聚合，可以用 multi-field：
+
+```json
+"title": {
+  "type": "text",
+  "analyzer": "standard",
+  "fields": {
+    "keyword": {
+      "type": "keyword"     ← 用 title.keyword 做精确匹配/聚合
+    }
+  }
+}
+```
+
+这样 `title` 用于全文搜索，`title.keyword` 用于精确匹配，两者共存。
 
 ### 2. 索引模板
 ```json
@@ -452,6 +712,71 @@ POST /_aliases
   ]
 }
 ```
+
+**给索引创建别名**
+
+别名就是给索引起一个"外号"，应用层统一访问别名，不直接访问真实索引名。
+
+```
+logs-2024-01  ←── current_logs（别名）
+                        ↑
+                   应用层只认这个名字
+```
+
+---
+
+**为什么要用别名？**
+
+最典型的场景就是上面那段代码的用法——**按月滚动索引**：
+
+```
+一月份：                    二月份：
+logs-2024-01               logs-2024-01
+     ↑                     logs-2024-02
+current_logs                    ↑
+                           current_logs
+```
+
+切换时只需要一个原子操作（remove + add 同时执行），应用代码里查的始终是 `current_logs`，**完全无感知**，不需要改任何代码。
+
+---
+
+**别名的其他用途**
+
+**1. 零停机重建索引**
+```
+旧索引: products_v1  ←── products（别名）
+
+# 重建完成后一次性切换
+products_v1 ✕
+products_v2 ←── products（别名）
+```
+mapping 改了需要重建索引时，用户完全无感知。
+
+**2. 一个别名指向多个索引**
+```json
+{ "add": {"index": "logs-2024-01", "alias": "all_logs"} },
+{ "add": {"index": "logs-2024-02", "alias": "all_logs"} }
+```
+查 `all_logs` 就能同时搜索两个月的数据，相当于逻辑合并。
+
+**3. 带过滤条件的别名**
+```json
+{
+  "add": {
+    "index": "orders",
+    "alias": "vip_orders",
+    "filter": {"term": {"is_vip": true}}
+  }
+}
+```
+不同业务方访问同一个索引的不同数据切片，天然隔离。
+
+---
+
+**一句话总结**
+
+> 别名 = 索引的指针，隔离了"索引真实名"和"业务访问名"，让索引的维护操作（滚动、重建、分片）对应用层完全透明。
 
 ## 集群管理
 
